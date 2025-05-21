@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run --hot src/server.ts"
+    "dev": "bun run --hot src/server.ts",
+    "db:reset": "sh db/db-reset.sh"
   },
   "devDependencies": {
     "@types/bun": "^1.2.13",
