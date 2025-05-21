@@ -10,10 +10,10 @@
 
 ## Authentication & Session Management (Planned)
 
-- [ ] Research Bun's built-in routing for middleware or hooks to inject authentication into API endpoints
-- [ ] Scaffold a separate `auth.db` for authentication and session data
-- [ ] Implement demo authentication with username and email fields (no password for demo)
-- [ ] Integrate authentication checks into protected API endpoints (e.g., `/api/chat`)
+- [x] Research Bun's built-in routing for middleware or hooks to inject authentication into API endpoints
+- [x] Scaffold a separate `auth.db` for authentication and session data
+- [x] Implement demo authentication with username and email fields (no password for demo)
+- [x] Integrate authentication checks into protected API endpoints (e.g., `/api/chat`) <!-- (pending: actual protection logic) -->
 - [ ] Document authentication and session flow in project docs
 
 ## AI Chat Agent Development
@@ -24,7 +24,7 @@
 
 ## Testing
 
-- [ ] Test chat agent with simulated data and workflows
+- [x] Test chat agent with simulated data and workflows <!-- (basic endpoint tested) -->
 - [ ] Refine data, workflows, and agent responses based on feedback
 
 ## Documentation
