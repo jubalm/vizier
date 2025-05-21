@@ -48,34 +48,43 @@ serve({
           }
           const userId = sessionRow.user_id
 
+          // --- Conversation (chat session) validation ---
+          const { chat_session_id, messages } = await req.json() as { chat_session_id: string, messages: any }
+          if (!chat_session_id) {
+            return new Response("Missing chat_session_id", { status: 400 })
+          }
+          // Ensure the chat session belongs to the user
+          const chatSession = chatDb.query<{ id: string }, { $id: string, $user_id: string }>(
+            "SELECT id FROM chat_sessions WHERE id = $id AND user_id = $user_id"
+          ).get({ $id: chat_session_id, $user_id: userId })
+          if (!chatSession) {
+            return new Response("Invalid chat_session_id", { status: 403 })
+          }
+
           // --- Chat memory: load previous messages ---
           const previousMessages = (chatDb
-            .query<CoreMessage, { $user_id: string; $session_id: string }>(
-              "SELECT role, content FROM chat_messages WHERE user_id = $user_id AND session_id = $session_id ORDER BY created_at ASC"
+            .query<CoreMessage, { $chat_session_id: string }>(
+              "SELECT role, content FROM chat_messages WHERE chat_session_id = $chat_session_id ORDER BY created_at ASC"
             )
-            .all({ $user_id: userId, $session_id: sessionId }))
+            .all({ $chat_session_id: chat_session_id }))
             .map(row => ({ role: row.role, content: row.content }))
 
           // --- Parse and append new message ---
-          const input = await req.json() as { messages: any }
-          const parsedInput = chatInputSchema.safeParse(input)
+          const parsedInput = chatInputSchema.safeParse({ messages })
           if (!parsedInput.success) {
             return new Response("Invalid input", { status: 400 })
           }
-          // Only allow valid roles for chat memory
           const allMessages = [
             ...previousMessages,
             ...parsedInput.data.messages
           ]
 
           // --- AI response ---
-          let assistantMessageContent = ""
           const result = streamText({
             model: customOpenAI('meta-llama/Meta-Llama-3.1-8B-Instruct'),
             messages: allMessages as any, // Let the SDK validate
             abortSignal: req.signal,
             onFinish: (finalMessage) => {
-              // Persist assistant response to chat memory with type assertions
               let assistantContent = ""
               if (finalMessage && typeof finalMessage === 'object') {
                 if ('message' in finalMessage && finalMessage.message && typeof finalMessage.message === 'object' && 'content' in finalMessage.message) {
@@ -91,15 +100,17 @@ serve({
                 assistantContent = String(finalMessage)
               }
               chatDb.query(
-                "INSERT INTO chat_messages (id, user_id, session_id, role, content, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO chat_messages (id, user_id, chat_session_id, role, content, created_at) VALUES (?, ?, ?, ?, ?, ?)",
               ).run(
                 crypto.randomUUID(),
                 userId,
-                sessionId,
+                chat_session_id,
                 'assistant',
                 assistantContent,
                 new Date().toISOString()
               )
+              // Update last_active
+              chatDb.query("UPDATE chat_sessions SET last_active = ? WHERE id = ?").run(new Date().toISOString(), chat_session_id)
             }
           })
 
@@ -107,17 +118,18 @@ serve({
           const now = new Date().toISOString()
           for (const msg of parsedInput.data.messages) {
             chatDb.query(
-              "INSERT INTO chat_messages (id, user_id, session_id, role, content, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+              "INSERT INTO chat_messages (id, user_id, chat_session_id, role, content, created_at) VALUES (?, ?, ?, ?, ?, ?)"
             ).run(
               crypto.randomUUID(),
               userId,
-              sessionId,
+              chat_session_id,
               msg.role,
               typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
               now
             )
           }
-          // Save assistant response after streaming (not implemented here, see onFinish for full persistence)
+          // Update last_active
+          chatDb.query("UPDATE chat_sessions SET last_active = ? WHERE id = ?").run(now, chat_session_id)
 
           return result.toDataStreamResponse({ sendReasoning: true })
         } catch (e) {
@@ -170,6 +182,70 @@ serve({
           return new Response("Invalid request", { status: 400 })
         }
       },
+    },
+    "/api/chat/session": {
+      POST: async (req: Request) => {
+        // Create a new chat session (conversation) for the authenticated user
+        try {
+          const sessionId = req.headers.get("x-session-id") || ""
+          if (!sessionId) return new Response("Missing session", { status: 401 })
+          const sessionRow = authDb
+            .query<{ user_id: string; expires_at: string }, { $sessionId: string }>(
+              "SELECT user_id, expires_at FROM sessions WHERE id = $sessionId"
+            ).get({ $sessionId: sessionId })
+          if (!sessionRow) return new Response("Invalid session", { status: 401 })
+          if (new Date(sessionRow.expires_at) < new Date()) return new Response("Session expired", { status: 401 })
+          const userId = sessionRow.user_id
+          const { name } = await req.json() as { name?: string }
+          const chatSessionId = crypto.randomUUID()
+          const now = new Date().toISOString()
+          chatDb.query("INSERT INTO chat_sessions (id, user_id, name, created_at, last_active) VALUES (?, ?, ?, ?, ?)")
+            .run(chatSessionId, userId, name || null, now, now)
+          return new Response(JSON.stringify({ chatSessionId, name, created_at: now }), { status: 201, headers: { "Content-Type": "application/json" } })
+        } catch (e) {
+          return new Response("Invalid request", { status: 400 })
+        }
+      },
+      GET: async (req: Request) => {
+        // List all chat sessions for the authenticated user
+        try {
+          const sessionId = req.headers.get("x-session-id") || ""
+          if (!sessionId) return new Response("Missing session", { status: 401 })
+          const sessionRow = authDb
+            .query<{ user_id: string; expires_at: string }, { $sessionId: string }>(
+              "SELECT user_id, expires_at FROM sessions WHERE id = $sessionId"
+            ).get({ $sessionId: sessionId })
+          if (!sessionRow) return new Response("Invalid session", { status: 401 })
+          if (new Date(sessionRow.expires_at) < new Date()) return new Response("Session expired", { status: 401 })
+          const userId = sessionRow.user_id
+          const sessions = chatDb.query<{ id: string, name: string | null, created_at: string, last_active: string }, { $user_id: string }>(
+            "SELECT id, name, created_at, last_active FROM chat_sessions WHERE user_id = $user_id ORDER BY last_active DESC"
+          ).all({ $user_id: userId })
+          return new Response(JSON.stringify(sessions), { status: 200, headers: { "Content-Type": "application/json" } })
+        } catch (e) {
+          return new Response("Invalid request", { status: 400 })
+        }
+      },
+      DELETE: async (req: Request) => {
+        // Delete a chat session and all its messages
+        try {
+          const sessionId = req.headers.get("x-session-id") || ""
+          if (!sessionId) return new Response("Missing session", { status: 401 })
+          const sessionRow = authDb
+            .query<{ user_id: string; expires_at: string }, { $sessionId: string }>(
+              "SELECT user_id, expires_at FROM sessions WHERE id = $sessionId"
+            ).get({ $sessionId: sessionId })
+          if (!sessionRow) return new Response("Invalid session", { status: 401 })
+          if (new Date(sessionRow.expires_at) < new Date()) return new Response("Session expired", { status: 401 })
+          const userId = sessionRow.user_id
+          const { chatSessionId } = await req.json() as { chatSessionId: string }
+          // Only allow deleting own sessions
+          chatDb.query("DELETE FROM chat_sessions WHERE id = ? AND user_id = ?").run(chatSessionId, userId)
+          return new Response(null, { status: 204 })
+        } catch (e) {
+          return new Response("Invalid request", { status: 400 })
+        }
+      }
     },
     "/*": index,
   },
