@@ -14,7 +14,9 @@
 - [x] Scaffold a separate `auth.db` for authentication and session data
 - [x] Implement demo authentication with username and email fields (no password for demo)
 - [x] Integrate authentication checks into protected API endpoints (e.g., `/api/chat`) <!-- (pending: actual protection logic) -->
-- [ ] Document authentication and session flow in project docs
+- [x] Document authentication and session flow in project docs
+- [ ] Reimplement session and authentication using cookies instead of headers
+- [ ] Build UI for user registration and login (with cookie-based session)
 
 ## AI Chat Agent Development
 

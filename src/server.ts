@@ -30,8 +30,9 @@ serve({
     "/api/chat": {
       POST: async (req: Request) => {
         try {
-          // --- Session validation ---
-          const sessionId = req.headers.get("x-session-id") || ""
+          // --- Session validation (cookie-based) ---
+          const cookie = req.headers.get("cookie") || ""
+          const sessionId = cookie.split(';').map(s => s.trim()).find(s => s.startsWith("sessionId="))?.split('=')[1] || ""
           if (!sessionId) {
             return new Response("Missing session", { status: 401 })
           }
@@ -177,7 +178,15 @@ serve({
           const created_at = new Date().toISOString()
           const expires_at = new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString() // 24h
           authDb.query("INSERT INTO sessions (id, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)").run(sessionId, userId, created_at, expires_at)
-          return new Response(JSON.stringify({ sessionId, userId, expires_at }), { status: 201, headers: { "Content-Type": "application/json" } })
+          // Set sessionId cookie (HttpOnly, 24h expiry)
+          const cookie = `sessionId=${sessionId}; Path=/; Max-Age=86400; HttpOnly; SameSite=Lax`
+          return new Response(JSON.stringify({ sessionId, userId, expires_at }), {
+            status: 201,
+            headers: {
+              "Content-Type": "application/json",
+              "Set-Cookie": cookie
+            }
+          })
         } catch (e) {
           return new Response("Invalid request", { status: 400 })
         }
@@ -187,7 +196,9 @@ serve({
       POST: async (req: Request) => {
         // Create a new chat session (conversation) for the authenticated user
         try {
-          const sessionId = req.headers.get("x-session-id") || ""
+          // --- Session validation (cookie-based) ---
+          const cookie = req.headers.get("cookie") || ""
+          const sessionId = cookie.split(';').map(s => s.trim()).find(s => s.startsWith("sessionId="))?.split('=')[1] || ""
           if (!sessionId) return new Response("Missing session", { status: 401 })
           const sessionRow = authDb
             .query<{ user_id: string; expires_at: string }, { $sessionId: string }>(
@@ -209,7 +220,9 @@ serve({
       GET: async (req: Request) => {
         // List all chat sessions for the authenticated user
         try {
-          const sessionId = req.headers.get("x-session-id") || ""
+          // --- Session validation (cookie-based) ---
+          const cookie = req.headers.get("cookie") || ""
+          const sessionId = cookie.split(';').map(s => s.trim()).find(s => s.startsWith("sessionId="))?.split('=')[1] || ""
           if (!sessionId) return new Response("Missing session", { status: 401 })
           const sessionRow = authDb
             .query<{ user_id: string; expires_at: string }, { $sessionId: string }>(
@@ -229,7 +242,9 @@ serve({
       DELETE: async (req: Request) => {
         // Delete a chat session and all its messages
         try {
-          const sessionId = req.headers.get("x-session-id") || ""
+          // --- Session validation (cookie-based) ---
+          const cookie = req.headers.get("cookie") || ""
+          const sessionId = cookie.split(';').map(s => s.trim()).find(s => s.startsWith("sessionId="))?.split('=')[1] || ""
           if (!sessionId) return new Response("Missing session", { status: 401 })
           const sessionRow = authDb
             .query<{ user_id: string; expires_at: string }, { $sessionId: string }>(

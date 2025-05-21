@@ -21,7 +21,7 @@ describe("Auth API", () => {
     expect(data.email).toBe(user.email)
   })
 
-  test("creates a session for a user", async () => {
+  test("creates a session for a user (sets cookie)", async () => {
     const user = randomUser()
     // Register first
     await fetch(`${API}/api/auth/register`, {
@@ -40,11 +40,13 @@ describe("Auth API", () => {
     expect(data.sessionId).toBeDefined()
     expect(data.userId).toBeDefined()
     expect(data.expires_at).toBeDefined()
+    const setCookie = res.headers.get("set-cookie")
+    expect(setCookie).toBeTruthy()
   })
 })
 
 describe("Chat Session API", () => {
-  let sessionId: string
+  let cookie: string
   let user: { username: string; email: string }
 
   test("setup user and session", async () => {
@@ -59,9 +61,8 @@ describe("Chat Session API", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: user.username }),
     })
-    const data = await res.json()
-    sessionId = data.sessionId
-    expect(sessionId).toBeDefined()
+    cookie = res.headers.get("set-cookie") || ""
+    expect(cookie).toContain("sessionId=")
   })
 
   let chatSessionId: string
@@ -71,7 +72,7 @@ describe("Chat Session API", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-session-id": sessionId,
+        "Cookie": cookie,
       },
       body: JSON.stringify({ name: "Test Conversation" }),
     })
@@ -84,7 +85,7 @@ describe("Chat Session API", () => {
   test("lists chat sessions", async () => {
     const res = await fetch(`${API}/api/chat/session`, {
       method: "GET",
-      headers: { "x-session-id": sessionId },
+      headers: { "Cookie": cookie },
     })
     expect(res.status).toBe(200)
     const data = await res.json()
@@ -97,7 +98,7 @@ describe("Chat Session API", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-session-id": sessionId,
+        "Cookie": cookie,
       },
       body: JSON.stringify({
         chat_session_id: chatSessionId,
@@ -108,7 +109,6 @@ describe("Chat Session API", () => {
     })
     // Accept 200 or 206 (streaming)
     expect([200, 206]).toContain(res.status)
-    // Optionally check for stream or partial response
   })
 
   test("deletes a chat session", async () => {
@@ -116,7 +116,7 @@ describe("Chat Session API", () => {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        "x-session-id": sessionId,
+        "Cookie": cookie,
       },
       body: JSON.stringify({ chatSessionId }),
     })
@@ -124,7 +124,7 @@ describe("Chat Session API", () => {
     // Confirm it's gone
     const listRes = await fetch(`${API}/api/chat/session`, {
       method: "GET",
-      headers: { "x-session-id": sessionId },
+      headers: { "Cookie": cookie },
     })
     const sessions = await listRes.json()
     expect(sessions.some((s: any) => s.id === chatSessionId)).toBe(false)
