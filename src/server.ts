@@ -7,6 +7,7 @@ import { z } from 'zod'
 
 // Initialize SQLite database
 const db = new Database("./src/vizier.db")
+
 const customOpenAI = createOpenAI({
   baseURL: process.env.OPENAI_API_BASE_URL,
   apiKey: process.env.OPENAI_API_KEY,
@@ -35,7 +36,7 @@ serve({
             abortSignal: req.signal
           })
 
-          return result.toTextStreamResponse()
+          return result.toDataStreamResponse({ sendReasoning: true })
         } catch (e) {
           return new Response("Invalid request", { status: 400 })
         }

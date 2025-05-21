@@ -1,8 +1,10 @@
+import { ChatInterface } from '@/components/ChatInterface'
+import '../index.css'
+
 const App = () => {
   return (
-    <div>
-      <h1>Hello, world!</h1>
-      <p>This is a simple React app.</p>
+    <div className='h-screen bg-background text-foreground px-4'>
+      <ChatInterface />
     </div>
   )
 }
