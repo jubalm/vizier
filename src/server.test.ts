@@ -1,6 +1,25 @@
-import { test, expect, describe } from "bun:test"
+import { test, expect, describe, beforeAll, afterAll } from "bun:test"
+import { app } from "./server"
 
-const API = "http://localhost:3000"
+let server: any
+let API: string
+
+beforeAll(async () => {
+  // Stop any running server on 3000 (if needed)
+  try {
+    const res = await fetch("http://localhost:3000/__healthcheck__")
+    if (res.ok) {
+      // Try to stop it if you have a way, or just warn
+      console.warn("A server is already running on port 3000. Tests may fail if ports conflict.")
+    }
+  } catch {}
+  server = Bun.serve({ fetch: app.fetch, port: 0 }) // 0 = random available port
+  API = `http://localhost:${server.port}`
+})
+
+afterAll(() => {
+  if (server) server.stop()
+})
 
 const randomUser = () => ({
   username: `testuser_${Math.floor(Math.random() * 100000)}`,

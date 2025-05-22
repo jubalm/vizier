@@ -37,10 +37,10 @@ const PORT = process.env.PORT || 3000
 
 type UserContext = { userId: string }
 
-const app = new Hono<{ Variables: UserContext }>().basePath('/api')
+const app = new Hono<{ Variables: UserContext }>()
 
 // --- Auth API ---
-app.post('/auth/register', async c => {
+app.post('/api/auth/register', async c => {
   console.log('Registering user')
   const { username, email } = await c.req.json()
   if (!username || !email) return c.text('Missing username or email', 400)
@@ -54,7 +54,7 @@ app.post('/auth/register', async c => {
   return c.json({ id, username, email, created_at }, 201)
 })
 
-app.post('/auth/session', async c => {
+app.post('/api/auth/session', async c => {
   const { username } = await c.req.json()
   if (!username) return c.text('Missing username', 400)
   const userRow = userService.getUserByUsername(username)
@@ -69,7 +69,7 @@ app.post('/auth/session', async c => {
   return c.json({ sessionId, userId, expires_at }, 201)
 })
 
-app.get('/auth/session', async c => {
+app.get('/api/auth/session', async c => {
   // Check if session cookie is present and valid
   const cookie = c.req.header('cookie') || ''
   const sessionId = cookie.split(';').map((s) => s.trim()).find((s) => s.startsWith('sessionId='))?.split('=')[1] || ''
@@ -81,7 +81,7 @@ app.get('/auth/session', async c => {
 })
 
 // --- Chat session API ---
-app.post('/chat/session', requireAuth, async c => {
+app.post('/api/chat/session', requireAuth, async c => {
   const userId = c.get('userId') as string
   const { name } = await c.req.json()
   const chatSessionId = crypto.randomUUID()
@@ -90,20 +90,20 @@ app.post('/chat/session', requireAuth, async c => {
   return c.json({ chatSessionId, name, created_at: now }, 201)
 })
 
-app.get('/chat/session', requireAuth, async c => {
+app.get('/api/chat/session', requireAuth, async c => {
   const userId = c.get('userId') as string
   const sessions = chatService.getChatSessionsForUser(userId)
   return c.json(sessions)
 })
 
-app.delete('/chat/session', requireAuth, async c => {
+app.delete('/api/chat/session', requireAuth, async c => {
   const userId = c.get('userId') as string
   const { chatSessionId } = await c.req.json()
   chatService.deleteChatSession(chatSessionId, userId)
   return c.body(null, 204)
 })
 
-app.post('/chat', requireAuth, zValidator('json', chatInputSchema), async c => {
+app.post('/api/chat', requireAuth, zValidator('json', chatInputSchema), async c => {
   const userId = c.get('userId') as string
   const { chat_session_id, messages } = c.req.valid('json')
   if (!chat_session_id) return c.text('Missing chat_session_id', 400)
@@ -159,9 +159,14 @@ app.post('/chat', requireAuth, zValidator('json', chatInputSchema), async c => {
   return result.toDataStreamResponse({ sendReasoning: true })
 })
 
-serve({
-  routes: { '/api/*': app.fetch, '/*': index },
-  port: PORT
-})
+// Only start the server if this file is run directly (not during tests)
+if (import.meta.main) {
+  serve({
+    fetch: app.fetch,
+    port: PORT,
+    routes: { "/*": index },
+  })
+  console.log(`Vizier API running on http://localhost:${PORT}`)
+}
 
-console.log(`Vizier API running on http://localhost:${PORT}`)
+export { app }
