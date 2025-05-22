@@ -1,15 +1,32 @@
 import { createMiddleware } from 'hono/factory'
 import { userService } from './services'
+import { getCookie, setCookie } from 'hono/cookie'
 
 export type UserContext = { userId: string }
 
 export const requireAuth = createMiddleware<{ Variables: UserContext }>(async (c, next) => {
-  const cookie = c.req.header('cookie') || ''
-  const sessionId = cookie.split(';').map((s: string) => s.trim()).find((s: string) => s.startsWith('sessionId='))?.split('=')[1] || ''
+  // Use Hono's getCookie utility
+  const sessionId = getCookie(c, 'sessionId') || ''
   if (!sessionId) return c.text('Missing session', 401)
   const sessionRow = userService.getSessionById(sessionId)
   if (!sessionRow) return c.text('Invalid session', 401)
-  if (new Date(sessionRow.expires_at) < new Date()) return c.text('Session expired', 401)
+  const now = new Date()
+  const expiresAt = new Date(sessionRow.expires_at)
+  if (expiresAt < now) return c.text('Session expired', 401)
+
+  // Extend session if less than 12h left
+  const THRESHOLD_MS = 1000 * 60 * 60 * 12 // 12 hours
+  if (expiresAt.getTime() - now.getTime() < THRESHOLD_MS) {
+    const newExpiresAt = new Date(now.getTime() + 1000 * 60 * 60 * 24) // 24h from now
+    userService.updateSessionExpiry(sessionId, newExpiresAt.toISOString())
+    setCookie(c, 'sessionId', sessionId, {
+      path: '/',
+      maxAge: 86400,
+      httpOnly: true,
+      sameSite: 'lax',
+    })
+  }
+
   c.set('userId', sessionRow.user_id)
   await next()
 })

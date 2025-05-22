@@ -5,6 +5,7 @@ import { CoreMessage, coreMessageSchema, streamText } from 'ai'
 import { requireAuth } from '@/middleware'
 import { chatService } from '@/services'
 import { createOpenAI } from '@ai-sdk/openai'
+import { chatDb } from '../db'
 
 const customOpenAI = createOpenAI({
   baseURL: process.env.OPENAI_API_BASE_URL,
@@ -28,17 +29,22 @@ const assistantResponseSchema = z.object({
 // Create chat
 chatRoutes.post('/', requireAuth, async c => {
   const userId = c.get('userId') as string
-  const { name } = await c.req.json()
+  const { topic } = await c.req.json()
+  if (!topic || typeof topic !== 'string' || !topic.trim()) {
+    return c.text('Missing or invalid topic', 400)
+  }
   const chatId = crypto.randomUUID()
   const now = new Date().toISOString()
-  chatService.createChat(chatId, userId, name || null, now)
-  return c.json({ chatId, name, created_at: now }, 201)
+  // Create chat with has_messages = 0
+  chatService.createChat(chatId, userId, topic.trim(), now)
+  return c.json({ chatId, topic: topic.trim(), has_messages: 0, created_at: now }, 201)
 })
 
 // List chats
 chatRoutes.get('/', requireAuth, async c => {
   const userId = c.get('userId') as string
   const chats = chatService.getChatsForUser(userId)
+  // Return all chat metadata including has_messages and topic
   return c.json(chats)
 })
 
@@ -58,7 +64,7 @@ chatRoutes.get('/messages', requireAuth, async c => {
   const chat = chatService.getChatById(chatId, userId)
   if (!chat) return c.text('Invalid chatId', 403)
   const messages = chatService.getChatMessages(chatId)
-  return c.json(messages)
+  return c.json({ chat, messages })
 })
 
 // Chat (send message)
@@ -116,6 +122,8 @@ chatRoutes.post('/message', requireAuth, zValidator('json', chatInputSchema), as
     )
   }
   chatService.updateChatLastActive(chatId, now)
+  // Ensure has_messages is set to 1 after first message
+  chatDb.query('UPDATE chats SET has_messages = 1 WHERE id = ?').run(chatId)
   return result.toDataStreamResponse({ sendReasoning: true })
 })
 

@@ -25,4 +25,10 @@ export class SqliteUserService implements IUserService {
       'SELECT user_id, expires_at FROM sessions WHERE id = $sessionId'
     ).get({ $sessionId: sessionId })
   }
+
+  updateSessionExpiry(sessionId: string, newExpiresAt: string) {
+    authDb.query(
+      'UPDATE sessions SET expires_at = ? WHERE id = ?'
+    ).run(newExpiresAt, sessionId)
+  }
 }

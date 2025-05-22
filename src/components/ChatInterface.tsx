@@ -14,14 +14,33 @@ export function ChatInterface() {
 
   const isBusy = useMemo(() => status === 'submitted' || status === 'streaming', [status])
 
-  // Custom submit handler to support abort and inject chatId
+  // Custom submit handler to support new chat creation at root
   const sendChatMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (isBusy || !chatId) {
+    if (isBusy) {
       stop()
       return
     }
-    // Manually POST to /api/chat/message with chatId
+    if (!chatId) {
+      // At root: create chat with first message as topic
+      const topic = input.trim() || 'New Chat'
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ topic }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        navigate(`/chat/${data.chatId}`)
+        setInput('')
+        setChatsKey(k => k + 1)
+      } else {
+        alert('Failed to create chat')
+      }
+      return
+    }
+    // Existing chat: send message as usual
     const res = await fetch('/api/chat/message', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -42,23 +61,6 @@ export function ChatInterface() {
     }
   }
 
-  const handleCreateChat = async () => {
-    const name = prompt('Enter a name for the new chat:') || ''
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ name }),
-    })
-    if (res.ok) {
-      const data = await res.json()
-      navigate(`/chat/${data.chatId}`)
-      setChatsKey(k => k + 1)
-    } else {
-      alert('Failed to create chat')
-    }
-  }
-
   const handleSelectChat = (id: string) => {
     navigate(`/chat/${id}`)
   }
@@ -70,7 +72,6 @@ export function ChatInterface() {
           key={chatsKey}
           onSelect={handleSelectChat}
           selectedId={chatId}
-          onCreate={handleCreateChat}
         />
       </aside>
       <main className="grid grid-rows-[1fr_min-content] gap-y-2">
@@ -93,14 +94,19 @@ export function ChatInterface() {
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-            <span className="text-lg font-semibold mb-2">Select a chat to begin</span>
-            <span className="text-sm">Or create a new chat from the sidebar.</span>
-            <button
-              className="mt-4 px-4 py-2 rounded bg-primary text-loud-foreground font-semibold hover:bg-primary/80"
-              onClick={handleCreateChat}
-            >
-              + New Chat
-            </button>
+            <span className="text-lg font-semibold mb-2">How can I help you today?</span>
+            <span className="text-sm">Type your message below to start a new chat.</span>
+            <form className="flex gap-2 items-end bg-muted-background/70 rounded px-2 py-2 mt-4" onSubmit={sendChatMessage}>
+              <ChatInput
+                value={input}
+                onChange={handleInputChange}
+                isBusy={isBusy}
+                maxLines={6}
+              />
+              <Button type="submit" isBusy={isBusy} className="bg-transparent shadow-none border-none p-0 h-8 w-8 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" /><path d="M6 12h16" /></svg>
+              </Button>
+            </form>
           </div>
         )}
       </main>

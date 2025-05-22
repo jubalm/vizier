@@ -1,5 +1,7 @@
 import { Hono } from 'hono'
 import { userService } from '../services'
+import { requireAuth } from '../middleware'
+import { getCookie, setCookie } from 'hono/cookie'
 
 const authRoutes = new Hono()
 
@@ -28,20 +30,19 @@ authRoutes.post('/session', async c => {
   const created_at = new Date().toISOString()
   const expires_at = new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString()
   userService.createSession(sessionId, userId, created_at, expires_at)
-  const cookie = `sessionId=${sessionId}; Path=/; Max-Age=86400; HttpOnly; SameSite=Lax`
-  c.header('Set-Cookie', cookie)
+  setCookie(c, 'sessionId', sessionId, {
+    path: '/',
+    maxAge: 86400,
+    httpOnly: true,
+    sameSite: 'lax',
+  })
   return c.json({ sessionId, userId, expires_at }, 201)
 })
 
 // Get session
-authRoutes.get('/session', async c => {
-  const cookie = c.req.header('cookie') || ''
-  const sessionId = cookie.split(';').map((s) => s.trim()).find((s) => s.startsWith('sessionId='))?.split('=')[1] || ''
-  if (!sessionId) return c.text('Missing session', 401)
-  const sessionRow = userService.getSessionById(sessionId)
-  if (!sessionRow) return c.text('Invalid session', 401)
-  if (new Date(sessionRow.expires_at) < new Date()) return c.text('Session expired', 401)
-  return c.json({ userId: sessionRow.user_id, expires_at: sessionRow.expires_at }, 200)
+authRoutes.get('/session', requireAuth, async c => {
+  const userId = c.get('userId') as string
+  return c.json({ userId }, 200)
 })
 
 export default authRoutes

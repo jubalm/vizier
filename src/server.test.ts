@@ -93,7 +93,7 @@ describe("Chat API", () => {
         "Content-Type": "application/json",
         "Cookie": cookie,
       },
-      body: JSON.stringify({ name: "Test Chat" }),
+      body: JSON.stringify({ topic: "Test Chat" }),
     })
     expect(res.status).toBe(201)
     const data = await res.json()

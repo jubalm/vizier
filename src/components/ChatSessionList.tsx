@@ -4,10 +4,9 @@ import { useEffect, useState } from 'react'
 interface ChatListProps {
   onSelect: (id: string) => void
   selectedId?: string
-  onCreate: () => void
 }
 
-export function ChatList({ onSelect, selectedId, onCreate }: ChatListProps) {
+export function ChatList({ onSelect, selectedId }: ChatListProps) {
   const [chats, setChats] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -29,12 +28,6 @@ export function ChatList({ onSelect, selectedId, onCreate }: ChatListProps) {
 
   return (
     <div>
-      <button
-        className="w-full mb-2 py-1 px-2 rounded bg-primary text-loud-foreground font-semibold hover:bg-primary/80"
-        onClick={onCreate}
-      >
-        + New Chat
-      </button>
       {chats.length === 0 ? (
         <div className="p-2 text-muted-foreground">No chats yet.</div>
       ) : (
@@ -45,7 +38,7 @@ export function ChatList({ onSelect, selectedId, onCreate }: ChatListProps) {
                 className={`w-full text-left px-2 py-1 rounded ${selectedId === c.id ? 'bg-primary text-loud-foreground' : 'hover:bg-muted-background'}`}
                 onClick={() => onSelect(c.id)}
               >
-                {c.name || 'Untitled'} <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</span>
+                {c.topic || 'Untitled'} <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</span>
               </button>
             </li>
           ))}
