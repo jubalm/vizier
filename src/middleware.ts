@@ -6,9 +6,9 @@ export type UserContext = { userId: string }
 
 export const requireAuth = createMiddleware<{ Variables: UserContext }>(async (c, next) => {
   // Use Hono's getCookie utility
-  const sessionId = getCookie(c, 'sessionId') || ''
-  if (!sessionId) return c.text('Missing session', 401)
-  const sessionRow = userService.getSessionById(sessionId)
+  const token = getCookie(c, 'sessionId') || ''
+  if (!token) return c.text('Missing session', 401)
+  const sessionRow = userService.getSessionByToken(token)
   if (!sessionRow) return c.text('Invalid session', 401)
   const now = new Date()
   const expiresAt = new Date(sessionRow.expires_at)
@@ -18,8 +18,8 @@ export const requireAuth = createMiddleware<{ Variables: UserContext }>(async (c
   const THRESHOLD_MS = 1000 * 60 * 60 * 12 // 12 hours
   if (expiresAt.getTime() - now.getTime() < THRESHOLD_MS) {
     const newExpiresAt = new Date(now.getTime() + 1000 * 60 * 60 * 24) // 24h from now
-    userService.updateSessionExpiry(sessionId, newExpiresAt.toISOString())
-    setCookie(c, 'sessionId', sessionId, {
+    userService.updateSessionExpiryByToken(token, newExpiresAt.toISOString())
+    setCookie(c, 'sessionId', token, {
       path: '/',
       maxAge: 86400,
       httpOnly: true,

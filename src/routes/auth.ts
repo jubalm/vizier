@@ -1,7 +1,8 @@
 import { Hono } from 'hono'
 import { userService } from '../services'
 import { requireAuth } from '../middleware'
-import { getCookie, setCookie } from 'hono/cookie'
+import { setCookie } from 'hono/cookie'
+import { generateSessionToken } from '../services/sessionUtil'
 
 const authRoutes = new Hono()
 
@@ -26,17 +27,17 @@ authRoutes.post('/session', async c => {
   const userRow = userService.getUserByUsername(username)
   if (!userRow || !userRow.id) return c.text('User not found', 404)
   const userId = userRow.id
-  const sessionId = crypto.randomUUID()
+  const token = generateSessionToken()
   const created_at = new Date().toISOString()
   const expires_at = new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString()
-  userService.createSession(sessionId, userId, created_at, expires_at)
-  setCookie(c, 'sessionId', sessionId, {
+  userService.createSession(token, userId, created_at, expires_at)
+  setCookie(c, 'sessionId', token, {
     path: '/',
     maxAge: 86400,
     httpOnly: true,
     sameSite: 'lax',
   })
-  return c.json({ sessionId, userId, expires_at }, 201)
+  return c.json({ sessionId: token, userId, expires_at }, 201)
 })
 
 // Get session
