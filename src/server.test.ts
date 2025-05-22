@@ -64,7 +64,7 @@ describe("Auth API", () => {
   })
 })
 
-describe("Chat Session API", () => {
+describe("Chat API", () => {
   let cookie: string
   let user: { username: string; email: string }
 
@@ -84,43 +84,43 @@ describe("Chat Session API", () => {
     expect(cookie).toContain("sessionId=")
   })
 
-  let chatSessionId: string
+  let chatId: string
 
-  test("creates a chat session", async () => {
-    const res = await fetch(`${API}/api/chat/session`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Cookie": cookie,
-      },
-      body: JSON.stringify({ name: "Test Conversation" }),
-    })
-    expect(res.status).toBe(201)
-    const data = await res.json()
-    expect(data.chatSessionId).toBeDefined()
-    chatSessionId = data.chatSessionId
-  })
-
-  test("lists chat sessions", async () => {
-    const res = await fetch(`${API}/api/chat/session`, {
-      method: "GET",
-      headers: { "Cookie": cookie },
-    })
-    expect(res.status).toBe(200)
-    const data = await res.json()
-    expect(Array.isArray(data)).toBe(true)
-    expect(data.some((s: any) => s.id === chatSessionId)).toBe(true)
-  })
-
-  test("sends a message to chat", async () => {
+  test("creates a chat", async () => {
     const res = await fetch(`${API}/api/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Cookie": cookie,
       },
+      body: JSON.stringify({ name: "Test Chat" }),
+    })
+    expect(res.status).toBe(201)
+    const data = await res.json()
+    expect(data.chatId).toBeDefined()
+    chatId = data.chatId
+  })
+
+  test("lists chats", async () => {
+    const res = await fetch(`${API}/api/chat`, {
+      method: "GET",
+      headers: { "Cookie": cookie },
+    })
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(Array.isArray(data)).toBe(true)
+    expect(data.some((c: any) => c.id === chatId)).toBe(true)
+  })
+
+  test("sends a message to chat", async () => {
+    const res = await fetch(`${API}/api/chat/message`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Cookie": cookie,
+      },
       body: JSON.stringify({
-        chat_session_id: chatSessionId,
+        chatId,
         messages: [
           { role: "user", content: "Hello, Vizier!" },
         ],
@@ -130,22 +130,22 @@ describe("Chat Session API", () => {
     expect([200, 206]).toContain(res.status)
   })
 
-  test("deletes a chat session", async () => {
-    const res = await fetch(`${API}/api/chat/session`, {
+  test("deletes a chat", async () => {
+    const res = await fetch(`${API}/api/chat`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
         "Cookie": cookie,
       },
-      body: JSON.stringify({ chatSessionId }),
+      body: JSON.stringify({ chatId }),
     })
     expect(res.status).toBe(204)
     // Confirm it's gone
-    const listRes = await fetch(`${API}/api/chat/session`, {
+    const listRes = await fetch(`${API}/api/chat`, {
       method: "GET",
       headers: { "Cookie": cookie },
     })
-    const sessions = await listRes.json()
-    expect(sessions.some((s: any) => s.id === chatSessionId)).toBe(false)
+    const chats = await listRes.json()
+    expect(chats.some((c: any) => c.id === chatId)).toBe(false)
   })
 })

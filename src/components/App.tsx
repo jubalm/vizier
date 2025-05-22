@@ -41,7 +41,7 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/chat/:sessionId" element={
+          <Route path="/chat/:chatId" element={
             authed ? (
               <div className='h-screen bg-background text-foreground px-4'>
                 <ChatInterface />

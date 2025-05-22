@@ -1,29 +1,29 @@
 import { useEffect, useState } from 'react'
 
-interface ChatSessionListProps {
+interface ChatListProps {
   onSelect: (id: string) => void
   selectedId?: string
   onCreate: () => void
 }
 
-export function ChatSessionList({ onSelect, selectedId, onCreate }: ChatSessionListProps) {
-  const [sessions, setSessions] = useState<any[]>([])
+export function ChatList({ onSelect, selectedId, onCreate }: ChatListProps) {
+  const [chats, setChats] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(true)
-    fetch('/api/chat/session', { credentials: 'include' })
+    fetch('/api/chat', { credentials: 'include' })
       .then(res => {
-        if (!res.ok) throw new Error('Failed to load sessions')
+        if (!res.ok) throw new Error('Failed to load chats')
         return res.json()
       })
-      .then(setSessions)
-      .catch(() => setError('Could not load chat sessions'))
+      .then(setChats)
+      .catch(() => setError('Could not load chats'))
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="p-2">Loading sessions...</div>
+  if (loading) return <div className="p-2">Loading chats...</div>
   if (error) return <div className="p-2 text-red-500">{error}</div>
 
   return (
@@ -32,19 +32,19 @@ export function ChatSessionList({ onSelect, selectedId, onCreate }: ChatSessionL
         className="w-full mb-2 py-1 px-2 rounded bg-primary text-loud-foreground font-semibold hover:bg-primary/80"
         onClick={onCreate}
       >
-        + New Chat Session
+        + New Chat
       </button>
-      {sessions.length === 0 ? (
-        <div className="p-2 text-muted-foreground">No chat sessions yet.</div>
+      {chats.length === 0 ? (
+        <div className="p-2 text-muted-foreground">No chats yet.</div>
       ) : (
         <ul className="space-y-1">
-          {sessions.map(s => (
-            <li key={s.id}>
+          {chats.map(c => (
+            <li key={c.id}>
               <button
-                className={`w-full text-left px-2 py-1 rounded ${selectedId === s.id ? 'bg-primary text-loud-foreground' : 'hover:bg-muted-background'}`}
-                onClick={() => onSelect(s.id)}
+                className={`w-full text-left px-2 py-1 rounded ${selectedId === c.id ? 'bg-primary text-loud-foreground' : 'hover:bg-muted-background'}`}
+                onClick={() => onSelect(c.id)}
               >
-                {s.name || 'Untitled'} <span className="text-xs text-muted-foreground">{new Date(s.created_at).toLocaleString()}</span>
+                {c.name || 'Untitled'} <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</span>
               </button>
             </li>
           ))}

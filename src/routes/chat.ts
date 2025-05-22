@@ -14,55 +14,55 @@ const customOpenAI = createOpenAI({
 const chatRoutes = new Hono<{ Variables: { userId: string } }>()
 
 const chatInputSchema = z.object({
-  chat_session_id: z.string().uuid(),
+  chatId: z.string().uuid(),
   messages: coreMessageSchema.array().min(1)
 })
 
-// Create chat session
-chatRoutes.post('/session', requireAuth, async c => {
+// Create chat
+chatRoutes.post('/', requireAuth, async c => {
   const userId = c.get('userId') as string
   const { name } = await c.req.json()
-  const chatSessionId = crypto.randomUUID()
+  const chatId = crypto.randomUUID()
   const now = new Date().toISOString()
-  chatService.createChatSession(chatSessionId, userId, name || null, now)
-  return c.json({ chatSessionId, name, created_at: now }, 201)
+  chatService.createChat(chatId, userId, name || null, now)
+  return c.json({ chatId, name, created_at: now }, 201)
 })
 
-// List chat sessions
-chatRoutes.get('/session', requireAuth, async c => {
+// List chats
+chatRoutes.get('/', requireAuth, async c => {
   const userId = c.get('userId') as string
-  const sessions = chatService.getChatSessionsForUser(userId)
-  return c.json(sessions)
+  const chats = chatService.getChatsForUser(userId)
+  return c.json(chats)
 })
 
-// Delete chat session
-chatRoutes.delete('/session', requireAuth, async c => {
+// Delete chat
+chatRoutes.delete('/', requireAuth, async c => {
   const userId = c.get('userId') as string
-  const { chatSessionId } = await c.req.json()
-  chatService.deleteChatSession(chatSessionId, userId)
+  const { chatId } = await c.req.json()
+  chatService.deleteChat(chatId, userId)
   return c.body(null, 204)
 })
 
 // Fetch chat message history
 chatRoutes.get('/messages', requireAuth, async c => {
   const userId = c.get('userId') as string
-  const chatSessionId = c.req.query('chat_session_id')
-  if (!chatSessionId) return c.text('Missing chat_session_id', 400)
-  const chatSession = chatService.getChatSessionById(chatSessionId, userId)
-  if (!chatSession) return c.text('Invalid chat_session_id', 403)
-  const messages = chatService.getChatMessages(chatSessionId)
+  const chatId = c.req.query('chatId')
+  if (!chatId) return c.text('Missing chatId', 400)
+  const chat = chatService.getChatById(chatId, userId)
+  if (!chat) return c.text('Invalid chatId', 403)
+  const messages = chatService.getChatMessages(chatId)
   return c.json(messages)
 })
 
 // Chat (send message)
-chatRoutes.post('/', requireAuth, zValidator('json', chatInputSchema), async c => {
+chatRoutes.post('/message', requireAuth, zValidator('json', chatInputSchema), async c => {
   const userId = c.get('userId') as string
-  const { chat_session_id, messages } = c.req.valid('json')
-  if (!chat_session_id) return c.text('Missing chat_session_id', 400)
-  const chatSession = chatService.getChatSessionById(chat_session_id, userId)
-  if (!chatSession) return c.text('Invalid chat_session_id', 403)
-  const chatSessionMessageHistory = chatService.getChatMessages(chat_session_id).map((m: { role: string, content: string }) => ({ role: m.role as any, content: m.content }))
-  const allMessages = [...chatSessionMessageHistory, ...messages] as CoreMessage[]
+  const { chatId, messages } = c.req.valid('json')
+  if (!chatId) return c.text('Missing chatId', 400)
+  const chat = chatService.getChatById(chatId, userId)
+  if (!chat) return c.text('Invalid chatId', 403)
+  const chatMessageHistory = chatService.getChatMessages(chatId).map((m: { role: string, content: string }) => ({ role: m.role as any, content: m.content }))
+  const allMessages = [...chatMessageHistory, ...messages] as CoreMessage[]
   const result = streamText({
     model: customOpenAI('meta-llama/Meta-Llama-3.1-8B-Instruct'),
     messages: allMessages,
@@ -85,12 +85,12 @@ chatRoutes.post('/', requireAuth, zValidator('json', chatInputSchema), async c =
       chatService.insertChatMessage(
         crypto.randomUUID(),
         userId,
-        chat_session_id,
+        chatId,
         'assistant',
         assistantContent,
         new Date().toISOString()
       )
-      chatService.updateChatSessionLastActive(chat_session_id, new Date().toISOString())
+      chatService.updateChatLastActive(chatId, new Date().toISOString())
     }
   })
   const now = new Date().toISOString()
@@ -98,13 +98,13 @@ chatRoutes.post('/', requireAuth, zValidator('json', chatInputSchema), async c =
     chatService.insertChatMessage(
       crypto.randomUUID(),
       userId,
-      chat_session_id,
+      chatId,
       msg.role,
       typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
       now
     )
   }
-  chatService.updateChatSessionLastActive(chat_session_id, now)
+  chatService.updateChatLastActive(chatId, now)
   return result.toDataStreamResponse({ sendReasoning: true })
 })
 
