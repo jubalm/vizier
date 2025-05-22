@@ -18,6 +18,13 @@ const chatInputSchema = z.object({
   messages: coreMessageSchema.array().min(1)
 })
 
+// Add a zod schema for the assistant response
+const assistantResponseSchema = z.object({
+  message: z.object({ content: z.string() }).optional(),
+  text: z.string().optional(),
+  content: z.string().optional(),
+})
+
 // Create chat
 chatRoutes.post('/', requireAuth, async c => {
   const userId = c.get('userId') as string
@@ -61,6 +68,7 @@ chatRoutes.post('/message', requireAuth, zValidator('json', chatInputSchema), as
   if (!chatId) return c.text('Missing chatId', 400)
   const chat = chatService.getChatById(chatId, userId)
   if (!chat) return c.text('Invalid chatId', 403)
+  // Get chat message history and append new messages
   const chatMessageHistory = chatService.getChatMessages(chatId).map((m: { role: string, content: string }) => ({ role: m.role as any, content: m.content }))
   const allMessages = [...chatMessageHistory, ...messages] as CoreMessage[]
   const result = streamText({
@@ -69,19 +77,21 @@ chatRoutes.post('/message', requireAuth, zValidator('json', chatInputSchema), as
     abortSignal: c.req.raw.signal,
     onFinish: (finalMessage) => {
       let assistantContent = ""
-      if (finalMessage && typeof finalMessage === 'object') {
-        if ('message' in finalMessage && finalMessage.message && typeof finalMessage.message === 'object' && 'content' in finalMessage.message) {
-          assistantContent = (finalMessage.message.content as string)
-        } else if ('text' in finalMessage) {
-          assistantContent = (finalMessage.text as string)
-        } else if ('content' in finalMessage) {
-          assistantContent = (finalMessage as any).content as string
+      const parsed = assistantResponseSchema.safeParse(finalMessage)
+      if (parsed.success) {
+        if (parsed.data.message && parsed.data.message.content) {
+          assistantContent = parsed.data.message.content
+        } else if (parsed.data.text) {
+          assistantContent = parsed.data.text
+        } else if (parsed.data.content) {
+          assistantContent = parsed.data.content
         } else {
-          assistantContent = JSON.stringify(finalMessage)
+          assistantContent = JSON.stringify(parsed.data)
         }
       } else {
-        assistantContent = String(finalMessage)
+        assistantContent = typeof finalMessage === 'string' ? finalMessage : JSON.stringify(finalMessage)
       }
+      // Store assistant response as a chat message
       chatService.insertChatMessage(
         crypto.randomUUID(),
         userId,
@@ -94,6 +104,7 @@ chatRoutes.post('/message', requireAuth, zValidator('json', chatInputSchema), as
     }
   })
   const now = new Date().toISOString()
+  // Store user messages in chat
   for (const msg of messages) {
     chatService.insertChatMessage(
       crypto.randomUUID(),

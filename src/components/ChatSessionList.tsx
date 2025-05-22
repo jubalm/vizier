@@ -1,3 +1,4 @@
+// ChatList: Sidebar component for listing and selecting chats
 import { useEffect, useState } from 'react'
 
 interface ChatListProps {

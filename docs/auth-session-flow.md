@@ -2,7 +2,7 @@
 
 ## Overview
 
-Vizier uses a simple demo authentication system for development and prototyping. Users register with a username and email (no password required). Authenticated sessions are required for all protected API endpoints, including chat and conversation management.
+Vizier uses a simple demo authentication system for development and prototyping. Users register with a username and email (no password required). Authenticated sessions are required for all protected API endpoints, including chat and chat management.
 
 ## Database Structure
 
@@ -32,13 +32,13 @@ Vizier uses a simple demo authentication system for development and prototyping.
 ## Session Validation Logic
 
 - If the session is missing, invalid, or expired, the API returns 401 Unauthorized.
-- If valid, the user ID is used to scope all further actions (e.g., chat sessions, messages).
+- If valid, the user ID is used to scope all further actions (e.g., chats, messages).
 
 ## Example Flow
 
 1. **Register**: User sends username/email to `/api/auth/register`.
 2. **Login**: User sends username to `/api/auth/session` and receives a session token.
-3. **Authenticated Requests**: User includes `x-session-id` header in all chat/conversation API calls.
+3. **Authenticated Requests**: User includes `x-session-id` header in all chat API calls.
 4. **Session Expiry**: After 24h, the session expires and a new one must be created.
 
 ## Security Notes
