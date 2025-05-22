@@ -41,7 +41,7 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/*" element={
+          <Route path="/chat/:sessionId" element={
             authed ? (
               <div className='h-screen bg-background text-foreground px-4'>
                 <ChatInterface />
@@ -51,7 +51,17 @@ const App = () => {
               <Navigate to="/login" replace />
             )
           } />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="/chat" element={
+            authed ? (
+              <div className='h-screen bg-background text-foreground px-4'>
+                <ChatInterface />
+                <LogoutButton />
+              </div>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } />
+          <Route path="/*" element={<Navigate to="/chat" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthContext.Provider>
