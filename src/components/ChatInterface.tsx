@@ -15,7 +15,7 @@ export function ChatInterface() {
   const isBusy = useMemo(() => status === 'submitted' || status === 'streaming', [status])
 
   // Custom submit handler to support abort and inject chatId
-  const handleCustomSubmit = async (e: React.FormEvent) => {
+  const sendChatMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isBusy || !chatId) {
       stop()
@@ -79,7 +79,7 @@ export function ChatInterface() {
             <div className="grid contain-size">
               <ChatMessages messages={messages} />
             </div>
-            <form className="flex gap-2 items-end bg-muted-background/70 rounded px-2 py-2" onSubmit={handleCustomSubmit}>
+            <form className="flex gap-2 items-end bg-muted-background/70 rounded px-2 py-2" onSubmit={sendChatMessage}>
               <ChatInput
                 value={input}
                 onChange={handleInputChange}
