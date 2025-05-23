@@ -7,7 +7,7 @@ export interface IUserService {
   createSession(sessionId: string, userId: string, created_at: string, expires_at: string): void
   getSessionById(sessionId: string): { user_id: string; expires_at: string } | null
   updateSessionExpiry(sessionId: string, newExpiresAt: string): void
-  createUserWithPassword(username: string, password: string): Promise<User | null>
+  createUserWithPassword(username: string, password: string, email: string): Promise<User | null>
   verifyUserPassword(username: string, password: string): Promise<boolean>
 }
 

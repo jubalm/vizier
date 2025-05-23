@@ -11,11 +11,13 @@ const authRoutes = new Hono()
 authRoutes.post('/register', async c => {
   const { username, email, password } = await c.req.json()
   if (!username || !email || !password) return c.text('Missing username, email, or password', 400)
-  const user = await userService.createUserWithPassword(username, password)
-  if (!user) return c.text('Username already exists', 409)
-  // Update email after user creation
-  authDb.query('UPDATE users SET email = ? WHERE id = ?',).run(email, user.id)
-  return c.json({ id: user.id, username, email, created_at: user.created_at }, 201)
+  try {
+    const user = await userService.createUserWithPassword(username, password, email)
+    if (!user) return c.text('Username already exists or DB error', 409)
+    return c.json({ id: user.id, username, email, created_at: user.created_at }, 201)
+  } catch (e: any) {
+    return c.text('Registration error: ' + (e?.message || String(e)), 500)
+  }
 })
 
 // Login (create session)

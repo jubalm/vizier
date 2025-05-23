@@ -23,6 +23,7 @@
     "@oslojs/encoding": "^1.1.0",
     "@phc/argon2": "^1.0.9",
     "ai": "^4.3.16",
+    "bcryptjs": "^3.0.2",
     "bun-plugin-tailwind": "^0.0.15",
     "clsx": "^2.1.1",
     "dompurify": "^3.2.6",

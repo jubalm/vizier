@@ -16,17 +16,18 @@ export class SqliteUserService implements IUserService {
     ).run(id, username, email, created_at)
   }
 
-  async createUserWithPassword(username: string, password: string) {
-    const password_hash = await hashPassword(password)
+  async createUserWithPassword(username: string, password: string, email: string) {
+    const password_hash = hashPassword(password)
     // Insert user and get id (UUID generated here)
     const id = crypto.randomUUID()
     const created_at = new Date().toISOString()
     try {
       authDb.query(
-        'INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)',
-      ).run(id, username, password_hash, created_at)
-      return { id, username, password_hash, created_at }
+        'INSERT INTO users (id, username, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)',
+      ).run(id, username, email, password_hash, created_at)
+      return { id, username, email, password_hash, created_at }
     } catch (e) {
+      console.error('createUserWithPassword error:', e)
       return null
     }
   }
@@ -36,7 +37,7 @@ export class SqliteUserService implements IUserService {
       'SELECT password_hash FROM users WHERE username = $username'
     ).get({ $username: username })
     if (!row?.password_hash) return false
-    return await verifyPassword(row.password_hash, password)
+    return verifyPassword(row.password_hash, password)
   }
 
   createSession(token: string, userId: string, created_at: string, expires_at: string) {

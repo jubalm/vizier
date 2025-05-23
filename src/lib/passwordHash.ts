@@ -1,9 +1,10 @@
-import argon2 from '@phc/argon2'
+import bcrypt from 'bcryptjs'
 
-export async function hashPassword(password: string): Promise<string> {
-  return argon2.hash(password)
+export function hashPassword(password: string): string {
+  // 10 salt rounds is a common default
+  return bcrypt.hashSync(password, 10)
 }
 
-export async function verifyPassword(hash: string, password: string): Promise<boolean> {
-  return argon2.verify(hash, password)
+export function verifyPassword(hash: string, password: string): boolean {
+  return bcrypt.compareSync(password, hash)
 }
