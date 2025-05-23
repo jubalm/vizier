@@ -3,7 +3,6 @@ import { userService } from '../services'
 import { requireAuth } from '../middleware'
 import { setCookie } from 'hono/cookie'
 import { generateSessionToken } from '../lib/sessionUtil'
-import { authDb } from '../db'
 
 const authRoutes = new Hono()
 

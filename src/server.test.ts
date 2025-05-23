@@ -1,5 +1,6 @@
 import { test, expect, describe, beforeAll, afterAll } from "bun:test"
 import { app } from "./server"
+import index from './index.html'
 
 let server: any
 let API: string
@@ -13,7 +14,23 @@ beforeAll(async () => {
       console.warn("A server is already running on port 3000. Tests may fail if ports conflict.")
     }
   } catch {}
-  server = Bun.serve({ fetch: app.fetch, port: 0 }) // 0 = random available port
+  server = Bun.serve({
+    // fetch: app.fetch,
+    port: 0,
+    // fetch: app.fetch,
+    routes: {
+      '/*': index,
+      '/api/*': {
+        POST: app.fetch,
+        GET: app.fetch,
+        DELETE: app.fetch,
+        PUT: app.fetch,
+        PATCH: app.fetch,
+        OPTIONS: app.fetch,
+        HEAD: app.fetch,
+      },
+    },
+  }) // 0 = random available port
   API = `http://localhost:${server.port}`
 })
 

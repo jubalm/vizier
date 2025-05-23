@@ -13,9 +13,18 @@ app.route('/api/chat', chatRoutes)
 // Only start the server if this file is run directly (not during tests)
 if (import.meta.main) {
   Bun.serve({
+    // fetch: app.fetch,
     routes: {
-      "/api/*": app.fetch,
-      "/*": index
+      '/*': index,
+      '/api/*': {
+        POST: app.fetch,
+        GET: app.fetch,
+        DELETE: app.fetch,
+        PUT: app.fetch,
+        PATCH: app.fetch,
+        OPTIONS: app.fetch,
+        HEAD: app.fetch,
+      }
     },
     port
   })
