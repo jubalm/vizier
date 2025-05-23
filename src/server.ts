@@ -1,5 +1,4 @@
 import { Hono } from 'hono'
-import { serve } from 'bun'
 import index from "./index.html"
 import authRoutes from './routes/auth'
 import chatRoutes from './routes/chat'
@@ -13,9 +12,11 @@ app.route('/api/chat', chatRoutes)
 
 // Only start the server if this file is run directly (not during tests)
 if (import.meta.main) {
-  serve({
-    fetch: app.fetch,
-    routes: { "/*": index },
+  Bun.serve({
+    routes: {
+      "/api/*": app.fetch,
+      "/*": index
+    },
     port
   })
   console.log(`Vizier API running on http://localhost:${port}`)

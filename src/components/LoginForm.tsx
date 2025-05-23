@@ -18,11 +18,12 @@ export function LoginForm({ onLoggedIn, switchToRegister }: LoginFormProps) {
     if (!form) return
     const formData = new FormData(form)
     const username = formData.get('username') as string
+    const password = formData.get('password') as string
     try {
       const res = await fetch('/api/auth/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username }),
+        body: JSON.stringify({ username, password }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -46,6 +47,13 @@ export function LoginForm({ onLoggedIn, switchToRegister }: LoginFormProps) {
         className="w-full p-2 border rounded"
         name="username"
         placeholder="Username"
+        required
+      />
+      <input
+        className="w-full p-2 border rounded"
+        name="password"
+        placeholder="Password"
+        type="password"
         required
       />
       {error && <div className="text-red-500">{error}</div>}

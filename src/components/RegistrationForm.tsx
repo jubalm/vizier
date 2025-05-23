@@ -19,11 +19,12 @@ export function RegistrationForm({ onRegistered, switchToLogin }: RegistrationFo
     const formData = new FormData(form)
     const username = formData.get('username') as string
     const email = formData.get('email') as string
+    const password = formData.get('password') as string
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email }),
+        body: JSON.stringify({ username, email, password }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -54,6 +55,13 @@ export function RegistrationForm({ onRegistered, switchToLogin }: RegistrationFo
         name="email"
         placeholder="Email"
         type="email"
+        required
+      />
+      <input
+        className="w-full p-2 border rounded"
+        name="password"
+        placeholder="Password"
+        type="password"
         required
       />
       {error && <div className="text-red-500">{error}</div>}

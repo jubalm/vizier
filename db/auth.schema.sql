@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY, -- UUID
   username TEXT UNIQUE NOT NULL,
   email TEXT UNIQUE NOT NULL,
+  password_hash TEXT, -- Nullable for migration
   created_at TEXT NOT NULL
 );
 

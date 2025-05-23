@@ -1,6 +1,7 @@
+import { hashPassword, verifyPassword } from '../lib/passwordHash'
 import { IUserService } from './IUserService'
 import { authDb } from '../db'
-import { hashSessionToken } from './sessionUtil'
+import { generateSessionToken, hashSessionToken } from '../lib/sessionUtil'
 
 export class SqliteUserService implements IUserService {
   getUserByUsername(username: string) {
@@ -13,6 +14,29 @@ export class SqliteUserService implements IUserService {
     authDb.query(
       'INSERT INTO users (id, username, email, created_at) VALUES (?, ?, ?, ?)'
     ).run(id, username, email, created_at)
+  }
+
+  async createUserWithPassword(username: string, password: string) {
+    const password_hash = await hashPassword(password)
+    // Insert user and get id (UUID generated here)
+    const id = crypto.randomUUID()
+    const created_at = new Date().toISOString()
+    try {
+      authDb.query(
+        'INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)',
+      ).run(id, username, password_hash, created_at)
+      return { id, username, password_hash, created_at }
+    } catch (e) {
+      return null
+    }
+  }
+
+  async verifyUserPassword(username: string, password: string): Promise<boolean> {
+    const row = authDb.query<{ password_hash: string }, { $username: string }>(
+      'SELECT password_hash FROM users WHERE username = $username'
+    ).get({ $username: username })
+    if (!row?.password_hash) return false
+    return await verifyPassword(row.password_hash, password)
   }
 
   createSession(token: string, userId: string, created_at: string, expires_at: string) {

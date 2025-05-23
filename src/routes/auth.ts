@@ -2,28 +2,28 @@ import { Hono } from 'hono'
 import { userService } from '../services'
 import { requireAuth } from '../middleware'
 import { setCookie } from 'hono/cookie'
-import { generateSessionToken } from '../services/sessionUtil'
+import { generateSessionToken } from '../lib/sessionUtil'
+import { authDb } from '../db'
 
 const authRoutes = new Hono()
 
 // Register
 authRoutes.post('/register', async c => {
-  const { username, email } = await c.req.json()
-  if (!username || !email) return c.text('Missing username or email', 400)
-  const id = crypto.randomUUID()
-  const created_at = new Date().toISOString()
-  try {
-    userService.createUser(id, username, email, created_at)
-  } catch (e) {
-    return c.text('Username or email already exists', 409)
-  }
-  return c.json({ id, username, email, created_at }, 201)
+  const { username, email, password } = await c.req.json()
+  if (!username || !email || !password) return c.text('Missing username, email, or password', 400)
+  const user = await userService.createUserWithPassword(username, password)
+  if (!user) return c.text('Username already exists', 409)
+  // Update email after user creation
+  authDb.query('UPDATE users SET email = ? WHERE id = ?',).run(email, user.id)
+  return c.json({ id: user.id, username, email, created_at: user.created_at }, 201)
 })
 
 // Login (create session)
 authRoutes.post('/session', async c => {
-  const { username } = await c.req.json()
-  if (!username) return c.text('Missing username', 400)
+  const { username, password } = await c.req.json()
+  if (!username || !password) return c.text('Missing username or password', 400)
+  const valid = await userService.verifyUserPassword(username, password)
+  if (!valid) return c.text('Invalid username or password', 401)
   const userRow = userService.getUserByUsername(username)
   if (!userRow || !userRow.id) return c.text('User not found', 404)
   const userId = userRow.id

@@ -24,6 +24,7 @@ afterAll(() => {
 const randomUser = () => ({
   username: `testuser_${Math.floor(Math.random() * 100000)}`,
   email: `test_${Math.floor(Math.random() * 100000)}@example.com`,
+  password: 'testpassword123',
 })
 
 describe("Auth API", () => {
@@ -52,7 +53,7 @@ describe("Auth API", () => {
     const res = await fetch(`${API}/api/auth/session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: user.username }),
+      body: JSON.stringify({ username: user.username, password: user.password }),
     })
     expect(res.status).toBe(201)
     const data = await res.json()
@@ -66,7 +67,7 @@ describe("Auth API", () => {
 
 describe("Chat API", () => {
   let cookie: string
-  let user: { username: string; email: string }
+  let user: { username: string; email: string; password: string }
 
   test("setup user and session", async () => {
     user = randomUser()
@@ -78,7 +79,7 @@ describe("Chat API", () => {
     const res = await fetch(`${API}/api/auth/session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: user.username }),
+      body: JSON.stringify({ username: user.username, password: user.password }),
     })
     cookie = res.headers.get("set-cookie") || ""
     expect(cookie).toContain("sessionId=")

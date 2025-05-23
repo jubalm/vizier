@@ -27,8 +27,7 @@ Vizier is a conceptual platform designed to help organizations manage and ensure
    ```
 2. **Seed the database:**
    ```sh
-   sqlite3 db/vizier.db < db/schema.sql
-   sqlite3 db/vizier.db < db/seed.sql
+   sh db/db-reset.sh
    ```
 3. **Run the dev server:**
    ```sh
@@ -37,6 +36,13 @@ Vizier is a conceptual platform designed to help organizations manage and ensure
 4. **Access the app:**
    - API: [http://localhost:3000](http://localhost:3000)
    - Chat endpoint: POST to `/api/chat/message` with `{ chatId, messages: [...] }`
+
+## Authentication Flow (Username + Password)
+
+- Users register with a username, email, and password. Passwords are hashed using Argon2 and never stored in plaintext.
+- Login requires both username and password. On success, a session cookie is set.
+- All protected endpoints require a valid session cookie. Sessions expire after 24 hours (auto-extended if active).
+- Password hashing and session utilities are modularized in `src/lib/passwordHash.ts` and `src/lib/sessionUtil.ts`.
 
 ## About This Project
 

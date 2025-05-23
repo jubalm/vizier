@@ -1,5 +1,5 @@
 import { useRef, useEffect, forwardRef, useImperativeHandle, type TextareaHTMLAttributes } from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/lib/uiUtils'
 
 export interface ChatInputProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   isBusy?: boolean

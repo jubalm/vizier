@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { type UIMessage } from "@ai-sdk/ui-utils"
-import { markdownToHtml } from '@/utils'
+import { markdownToHtml } from '@/lib/uiUtils'
 
 type ChatMessagesProp = {
   messages: UIMessage[]

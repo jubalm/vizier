@@ -1,5 +1,5 @@
 import { ButtonHTMLAttributes } from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/lib/uiUtils'
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   isBusy?: boolean
