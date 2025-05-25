@@ -50,14 +50,12 @@ authApp.post("/signup", async (c) => {
     setCookie(c, "session_id", clientSessionToken, {
       path: "/",
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Set to true in production
+      secure: process.env.NODE_ENV === "production",
       sameSite: "Lax",
       expires: expiresAt,
-      // domain: 'localhost', // Required for localhost unless path is also specific
     })
 
-    const user = getUserById(userId)
-    return c.json({ id: user?.id, username: user?.username })
+    return c.json({ userId })
   } catch (error) {
     console.error("[Auth Signup Error]", error)
     return c.json({ error: getErrorMessage(error) }, 500)
@@ -91,13 +89,12 @@ authApp.post("/login", async (c) => {
     setCookie(c, "session_id", clientSessionToken, {
       path: "/",
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Set to true in production
+      secure: process.env.NODE_ENV === "production",
       sameSite: "Lax",
       expires: expiresAt,
-      // domain: 'localhost', // Required for localhost unless path is also specific
     })
 
-    return c.json({ id: user.id, username: username })
+    return c.json({ userId: user.id })
   } catch (error) {
     console.error("[Auth Login Error]", error)
     return c.json({ error: getErrorMessage(error) }, 500)
@@ -110,9 +107,9 @@ authApp.post("/logout", async (c) => {
     const clientSessionToken = getCookie(c, "session_id")
     if (clientSessionToken) {
       deleteSession(clientSessionToken)
-      deleteCookie(c, "session_id", { path: "/", /* domain: 'localhost' */ })
+      deleteCookie(c, "session_id", { path: "/" })
     }
-    return c.json({ message: "Logged out successfully" })
+    return c.json({ success: true })
   } catch (error) {
     console.error("[Auth Logout Error]", error)
     return c.json({ error: getErrorMessage(error) }, 500)
@@ -124,38 +121,33 @@ authApp.get("/session", async (c) => {
   try {
     const clientSessionTokenFromCookie = getCookie(c, "session_id")
     if (!clientSessionTokenFromCookie) {
-      return c.json({ user: null }, 200)
+      return c.json({ user: null }, 401)
     }
 
     const session = getSessionAndRenew(clientSessionTokenFromCookie)
     if (!session) {
-      deleteCookie(c, "session_id", { path: "/", /* domain: 'localhost' */ })
-      return c.json({ user: null }, 200)
+      deleteCookie(c, "session_id", { path: "/" })
+      return c.json({ user: null }, 401)
     }
 
-    // Session is valid and potentially renewed, session object contains { userId, expiresAt, clientSessionToken }
     const user = getUserById(session.userId)
     if (!user) {
-      // This case should ideally not happen if session.userId is valid
-      deleteCookie(c, "session_id", { path: "/", /* domain: 'localhost' */ })
-      return c.json({ user: null, error: "User not found for valid session" }, 200)
+      deleteCookie(c, "session_id", { path: "/" })
+      return c.json({ user: null, error: "User not found for valid session" }, 401)
     }
 
-    // Set/Refresh the cookie with the token from getSessionAndRenew (might be the same or a new one if renewal involved re-tokening, though current lib doesn't re-token)
-    // and the potentially updated expiresAt.
     setCookie(c, "session_id", session.clientSessionToken, {
       path: "/",
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Lax",
-      expires: session.expiresAt, // Use the expiresAt from the (potentially renewed) session
-      // domain: 'localhost',
+      expires: session.expiresAt,
     })
 
     return c.json({ user: { id: user.id, username: user.username } })
   } catch (error) {
     console.error("[Auth Session Error]", error)
-    deleteCookie(c, "session_id", { path: "/", /* domain: 'localhost' */ })
+    deleteCookie(c, "session_id", { path: "/" })
     return c.json({ error: getErrorMessage(error), user: null }, 500)
   }
 })
