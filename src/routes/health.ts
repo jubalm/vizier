@@ -1,12 +1,12 @@
-import { Hono } from 'hono';
+import { Hono } from 'hono'
 
-const healthApp = new Hono();
+const healthRoutes = new Hono()
 
-healthApp.get('/', (c) => {
+healthRoutes.get('/', (c) => {
   return c.json({
     status: "ok",
     timestamp: new Date().toISOString(),
-  });
-});
+  })
+})
 
-export default healthApp;
+export default healthRoutes

@@ -1,12 +1,10 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { serveStatic } from 'hono/bun' // Changed from @hono/node-server to hono/bun
 import { validateConfig, config } from "./config"
 import "./lib/db" // Initialize database
-
-import healthRoutes from "./routes/health" // Assuming this is Hono compatible or will be adapted
-import chatRoutes from "./routes/chat"   // Assuming this is Hono compatible or will be adapted
-import authApp from "./routes/auth"
+import indexHtml from '@/index.html'
+import * as routes from '@/routes/index'
+import { serve } from 'bun'
 
 // Validate environment configuration
 validateConfig()
@@ -14,26 +12,31 @@ validateConfig()
 const app = new Hono()
 
 // CORS middleware
-app.use('*_SERVER_CONFIG_PLACEHOLDER_*', cors()) // Placeholder for path, will refine if needed
+app.use('/api/*', cors()) // Apply CORS to all /api routes
 
 // API routes
-app.route('/api/health', healthRoutes) // If healthRoutes is a Hono app
-app.route('/api/chat', chatRoutes)     // If chatRoutes is a Hono app
-app.route('/api/auth', authApp)
-
-// Static assets serving - adjust path as necessary
-app.use('/*', serveStatic({ root: './dist' })) // Serving from ./dist
-app.get('/*', serveStatic({ path: './dist/index.html' })) // SPA fallback
+app.route('/api/health', routes.healthRoutes)
+app.route('/api/chat', routes.chatRoutes)
+app.route('/api/auth', routes.authRoutes)
 
 console.log(`Server starting on port ${config.PORT}...`)
 
-Bun.serve({
-  fetch: app.fetch,
+const server = serve({
   port: config.PORT,
+  routes: {
+    '/*': indexHtml,
+    '/api/*': {
+      GET: app.fetch,
+      POST: app.fetch,
+      PUT: app.fetch
+    }
+  },
+  development: process.env.NODE_ENV !== "production" && {
+    // Enable browser hot reloading in development
+    hmr: true,
+    // Echo console logs from the browser to the server
+    console: true,
+  },
 })
 
-console.log(
-  `🦊 Hono server is running at http://localhost:${config.PORT}`
-)
-
-export default app // Exporting the Hono app instance
+console.log(`🚀 Server running at ${server.url}`)

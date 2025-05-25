@@ -19,6 +19,11 @@ const envSchema = z.object({
     .url('OPENAI_BASE_URL must be a valid URL')
     .optional()
     .default('https://api.openai.com/v1'),
+  PORT: z
+    .string()
+    .regex(/^\d+$/, { message: "PORT must be a string containing only digits" })
+    .transform(Number)
+    .default('3000'),
 })
 
 // Validate environment variables with Zod
@@ -29,6 +34,7 @@ export function validateConfig() {
     validatedConfig = envSchema.parse({
       OPENAI_API_KEY: process.env.OPENAI_API_KEY,
       OPENAI_BASE_URL: process.env.OPENAI_BASE_URL,
+      PORT: process.env.PORT,
     })
     console.log("[Config] Environment configuration validated successfully.")
     return validatedConfig

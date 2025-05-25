@@ -1,8 +1,10 @@
+import { Hono } from 'hono'
 import { streamText } from 'ai'
 import { createOpenAIProvider } from '../config'
-import { getErrorMessage } from '../lib/errors'
 
-export async function POST(req: Request): Promise<Response> {
+const chatRoutes = new Hono()
+
+chatRoutes.post('/', async (c) => {
   try {
     // Validate provider configuration
     let openaiProvider
@@ -10,68 +12,63 @@ export async function POST(req: Request): Promise<Response> {
       openaiProvider = createOpenAIProvider()
     } catch (configError: any) {
       console.error('OpenAI configuration error:', configError)
-      return new Response(
-        JSON.stringify({
+      return c.json(
+        {
           error: 'OpenAI configuration error',
           message: configError.message
-        }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
+        },
+        400
       )
     }
 
-    const { messages } = await req.json()
+    const { messages } = await c.req.json()
 
     if (!messages || !Array.isArray(messages)) {
-      return new Response(
-        JSON.stringify({
+      return c.json(
+        {
           error: 'Invalid request',
           message: 'Messages array is required'
-        }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
+        },
+        400
       )
     }
 
     const result = await streamText({
       model: openaiProvider('meta-llama/Meta-Llama-3.1-8B-Instruct'),
       messages,
-      maxTokens: 1000,
+      maxTokens: 1000
     })
 
-    return result.toDataStreamResponse({
-      getErrorMessage,
-    })
+    // Correctly stream the response using Hono
+    c.header('Content-Type', 'text/event-stream')
+    c.header('Cache-Control', 'no-cache')
+    c.header('Connection', 'keep-alive')
+
+    // Directly return the ReadableStream from the AI SDK
+    // Hono can handle ReadableStream directly in the body
+    return c.body(result.toDataStream())
   } catch (error: any) {
     console.error('Chat API error:', error)
 
     // Handle specific AI SDK errors
     if (error.name === 'AI_APICallError') {
-      return new Response(
-        JSON.stringify({
+      return c.json(
+        {
           error: 'API call failed',
           message: 'Failed to communicate with AI provider. Please check your configuration.'
-        }),
-        {
-          status: 502,
-          headers: { 'Content-Type': 'application/json' }
-        }
+        },
+        502
       )
     }
 
-    return new Response(
-      JSON.stringify({
+    return c.json(
+      {
         error: 'Internal server error',
         message: 'An unexpected error occurred'
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
+      },
+      500
     )
   }
-}
+})
+
+export default chatRoutes
