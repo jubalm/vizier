@@ -95,18 +95,21 @@ bun build
 The application includes comprehensive error handling to provide a smooth user experience:
 
 ### Backend Error Handling
+
 - **Configuration Validation**: Validates API keys and configuration before processing requests
 - **Custom Error Messages**: Provides specific, user-friendly error messages for different scenarios
 - **Request Validation**: Ensures proper request format and message structure
 - **Stream Error Integration**: Integrates error handling with AI SDK streaming responses
 
 ### Frontend Error Handling
+
 - **Visual Error Display**: Shows clear error messages in the chat interface
 - **Retry Functionality**: Users can easily retry failed requests with a single click
 - **Input State Management**: Disables input during error states to prevent confusion
 - **Non-blocking UI**: Chat interface remains responsive even during errors
 
 ### Common Error Scenarios
+
 - **Missing API Key**: Clear message about configuration requirements
 - **Rate Limiting**: Helpful guidance when API limits are exceeded
 - **Network Issues**: Retry options for temporary connectivity problems

@@ -2,12 +2,12 @@ import { type RefObject } from "react"
 import { User, Bot, AlertCircle, RefreshCw } from "lucide-react"
 import type { Message } from "ai"
 
-export function ChatWindow({ 
-  messages, 
-  chatWindowRef, 
-  isLoading, 
-  error, 
-  onRetry 
+export function ChatWindow({
+  messages,
+  chatWindowRef,
+  isLoading,
+  error,
+  onRetry
 }: {
   messages: Message[],
   chatWindowRef: RefObject<HTMLDivElement>,

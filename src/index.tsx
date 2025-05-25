@@ -1,18 +1,47 @@
 import { serve } from "bun"
 import index from "./index.html"
-import { createOpenAI } from '@ai-sdk/openai'
+import { createOpenAI, openai } from '@ai-sdk/openai'
 import { streamText } from 'ai'
+import { z } from 'zod'
 
-// Validate environment variables
-function validateOpenAIConfig() {
-  const apiKey = process.env.OPENAI_API_KEY
-  const model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
-  
-  if (!apiKey || apiKey === 'your-api-key') {
-    throw new Error('OPENAI_API_KEY is required and must be set to a valid API key')
+// Environment configuration schema
+const envSchema = z.object({
+  OPENAI_API_KEY: z
+    .string()
+    .min(1, 'OPENAI_API_KEY is required')
+    .refine(
+      (key) => key !== 'your-api-key' && key !== 'your-openai-api-key-here',
+      'OPENAI_API_KEY must be set to a valid API key, not the placeholder value'
+    )
+    .refine(
+      (key) => key.startsWith('sk-') || key.includes('hf_') || key.length > 20,
+      'OPENAI_API_KEY appears to be invalid format'
+    ),
+  OPENAI_BASE_URL: z
+    .string()
+    .url('OPENAI_BASE_URL must be a valid URL')
+    .optional()
+    .default('https://api.openai.com/v1'),
+})
+
+// Validate environment variables with Zod
+function validateConfig() {
+  try {
+    const config = envSchema.parse({
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+      OPENAI_BASE_URL: process.env.OPENAI_BASE_URL,
+    })
+
+    return config
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const errorMessages = error.errors.map(err =>
+        `${err.path.join('.')}: ${err.message}`
+      ).join('; ')
+      throw new Error(`Configuration validation failed: ${errorMessages}`)
+    }
+    throw error
   }
-  
-  return { apiKey, model }
 }
 
 // Error handler for streamText
@@ -26,23 +55,32 @@ function getErrorMessage(error: unknown): string {
   }
 
   if (error instanceof Error) {
-    // Handle specific error types
-    if (error.name === 'AI_APICallError') {
-      return 'Failed to communicate with AI provider. Please check your API configuration.'
+    const errorMap: Record<string, string | ((e: Error) => string)> = {
+      'AI_APICallError': 'Failed to communicate with AI provider. Please check your API configuration.',
+      'AI_InvalidResponseDataError': 'Received invalid response from AI provider. Please try again.',
+      // Keywords to check in error.message
+      'API key': 'Invalid API key. Please check your OpenAI configuration.',
+      'quota': 'API quota exceeded. Please check your OpenAI usage limits.',
+      'rate limit': 'Rate limit exceeded. Please wait a moment and try again.',
     }
-    if (error.name === 'AI_InvalidResponseDataError') {
-      return 'Received invalid response from AI provider. Please try again.'
+
+    // Check for specific error names first
+    if (error.name in errorMap) {
+      const messageOrFn = errorMap[error.name]
+      return typeof messageOrFn === 'function' ? messageOrFn(error) : messageOrFn
     }
-    if (error.message.includes('API key')) {
-      return 'Invalid API key. Please check your OpenAI configuration.'
+
+    // Then check for keywords in the message
+    for (const keyword in errorMap) {
+      if (error.message.includes(keyword)) {
+        const messageOrFn = errorMap[keyword]
+        // Ensure we don't re-match on error.name keys if they happen to be substrings
+        if (!Object.prototype.hasOwnProperty.call(errorMap, error.name) || !error.name.includes(keyword)) {
+          return typeof messageOrFn === 'function' ? messageOrFn(error) : messageOrFn
+        }
+      }
     }
-    if (error.message.includes('quota')) {
-      return 'API quota exceeded. Please check your OpenAI usage limits.'
-    }
-    if (error.message.includes('rate limit')) {
-      return 'Rate limit exceeded. Please wait a moment and try again.'
-    }
-    
+    // Default to the original error message if no specific mapping is found
     return error.message
   }
 
@@ -51,11 +89,11 @@ function getErrorMessage(error: unknown): string {
 
 // Configure OpenAI provider with custom baseURL support
 function createOpenAIProvider() {
-  const { apiKey } = validateOpenAIConfig()
-  
+  const config = validateConfig()
+
   return createOpenAI({
-    apiKey,
-    baseURL: process.env.OPENAI_BASE_URL, // Optional: for custom OpenAI-compatible endpoints
+    apiKey: config.OPENAI_API_KEY,
+    baseURL: config.OPENAI_BASE_URL,
   })
 }
 
@@ -74,36 +112,34 @@ const server = serve({
           } catch (configError) {
             console.error('OpenAI configuration error:', configError)
             return new Response(
-              JSON.stringify({ 
-                error: 'OpenAI configuration error', 
-                message: configError.message 
-              }), 
-              { 
-                status: 400, 
-                headers: { 'Content-Type': 'application/json' } 
+              JSON.stringify({
+                error: 'OpenAI configuration error',
+                message: configError.message
+              }),
+              {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
               }
             )
           }
 
           const { messages } = await req.json()
-          
+
           if (!messages || !Array.isArray(messages)) {
             return new Response(
-              JSON.stringify({ 
-                error: 'Invalid request', 
-                message: 'Messages array is required' 
-              }), 
-              { 
-                status: 400, 
-                headers: { 'Content-Type': 'application/json' } 
+              JSON.stringify({
+                error: 'Invalid request',
+                message: 'Messages array is required'
+              }),
+              {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
               }
             )
           }
 
-          const { model } = validateOpenAIConfig()
-          
           const result = await streamText({
-            model: openaiProvider(model),
+            model: openaiProvider('meta-llama/Meta-Llama-3.1-8B-Instruct'),
             messages,
             maxTokens: 1000,
           })
@@ -113,29 +149,29 @@ const server = serve({
           })
         } catch (error) {
           console.error('Chat API error:', error)
-          
+
           // Handle specific AI SDK errors
           if (error.name === 'AI_APICallError') {
             return new Response(
-              JSON.stringify({ 
-                error: 'API call failed', 
-                message: 'Failed to communicate with AI provider. Please check your configuration.' 
-              }), 
-              { 
-                status: 502, 
-                headers: { 'Content-Type': 'application/json' } 
+              JSON.stringify({
+                error: 'API call failed',
+                message: 'Failed to communicate with AI provider. Please check your configuration.'
+              }),
+              {
+                status: 502,
+                headers: { 'Content-Type': 'application/json' }
               }
             )
           }
-          
+
           return new Response(
-            JSON.stringify({ 
-              error: 'Internal server error', 
-              message: 'An unexpected error occurred' 
-            }), 
-            { 
-              status: 500, 
-              headers: { 'Content-Type': 'application/json' } 
+            JSON.stringify({
+              error: 'Internal server error',
+              message: 'An unexpected error occurred'
+            }),
+            {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' }
             }
           )
         }

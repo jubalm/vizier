@@ -2,12 +2,12 @@ import React from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
-export function ChatInput({ 
-  input, 
-  handleInputChange, 
-  handleSubmit, 
-  isLoading, 
-  error 
+export function ChatInput({
+  input,
+  handleInputChange,
+  handleSubmit,
+  isLoading,
+  error
 }: {
   input: string,
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
