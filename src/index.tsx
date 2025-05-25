@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { validateConfig, config } from "./config"
-import "./services/auth/db" // Initialize database
+import "@/services/auth/db" // Initialize database
 import indexHtml from '@/index.html'
 import * as routes from '@/routes/index'
 import { serve } from 'bun'
