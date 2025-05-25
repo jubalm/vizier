@@ -2,11 +2,18 @@ import React from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
-export function ChatInput({ input, handleInputChange, handleSubmit, isLoading }: {
+export function ChatInput({ 
+  input, 
+  handleInputChange, 
+  handleSubmit, 
+  isLoading, 
+  error 
+}: {
   input: string,
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
   handleSubmit: (e: React.FormEvent) => void,
-  isLoading: boolean
+  isLoading: boolean,
+  error?: Error | null
 }) {
   return (
     <form
@@ -19,9 +26,9 @@ export function ChatInput({ input, handleInputChange, handleSubmit, isLoading }:
         placeholder="Type your message..."
         className="flex-1"
         autoFocus
-        disabled={isLoading}
+        disabled={isLoading || !!error}
       />
-      <Button type="submit" disabled={!input.trim() || isLoading}>
+      <Button type="submit" disabled={!input.trim() || isLoading || !!error}>
         {isLoading ? "Sending..." : "Send"}
       </Button>
     </form>

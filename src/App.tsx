@@ -31,8 +31,19 @@ export function App() {
   const chatWindowRef = useRef<HTMLDivElement>(null)
 
   // Use the useChat hook for AI-powered chat
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+  const { 
+    messages, 
+    input, 
+    handleInputChange, 
+    handleSubmit, 
+    isLoading, 
+    error, 
+    reload 
+  } = useChat({
     api: '/api/chat',
+    onError: (error) => {
+      console.error('Chat error:', error)
+    },
   })
 
   const activeChat = chats.find((c) => c.id === activeChatId)
@@ -65,9 +76,21 @@ export function App() {
             <h2 className="text-lg font-semibold">{activeChat?.name}</h2>
           </div>
           {/* Chat Window */}
-          <ChatWindow messages={messages} chatWindowRef={chatWindowRef} isLoading={isLoading} />
+          <ChatWindow 
+            messages={messages} 
+            chatWindowRef={chatWindowRef} 
+            isLoading={isLoading} 
+            error={error}
+            onRetry={reload}
+          />
           {/* Chat Input */}
-          <ChatInput input={input} handleInputChange={handleInputChange} handleSubmit={handleSubmit} isLoading={isLoading} />
+          <ChatInput 
+            input={input} 
+            handleInputChange={handleInputChange} 
+            handleSubmit={handleSubmit} 
+            isLoading={isLoading}
+            error={error}
+          />
         </div>
       </div>
     </SidebarProvider >
