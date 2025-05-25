@@ -1,5 +1,5 @@
 import { createMiddleware } from 'hono/factory'
-import { getSessionAndRenew } from '../lib/auth'
+import { getSessionAndRenew } from './logic'
 import { getCookie, setCookie } from 'hono/cookie'
 
 export const sessionAuth = createMiddleware(async (c, next) => {
@@ -7,7 +7,7 @@ export const sessionAuth = createMiddleware(async (c, next) => {
   if (!sessionToken) {
     return c.json({ error: 'Unauthorized', message: 'No session cookie' }, 401)
   }
-  const session = await getSessionAndRenew(sessionToken)
+  const session = getSessionAndRenew(sessionToken)
   if (!session) {
     return c.json({ error: 'Unauthorized', message: 'Invalid or expired session' }, 401)
   }
