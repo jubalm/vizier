@@ -1,9 +1,8 @@
-import "./index.css"
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
-import LoginPage from "./pages/LoginPage"
-import RegisterPage from "./pages/RegisterPage"
-import ChatPage from "./pages/ChatPage"
-import { AuthProvider, useAuth } from "./components/AuthProvider"
+import LoginPage from "@/pages/LoginPage"
+import RegisterPage from "@/pages/RegisterPage"
+import ChatPage from "@/pages/ChatPage"
+import { AuthProvider, useAuth } from "@/components/AuthProvider"
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
