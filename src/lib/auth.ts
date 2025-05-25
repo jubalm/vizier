@@ -37,6 +37,26 @@ export async function createUser(username: string, password_plaintext: string): 
   }
 }
 
+export async function createUserWithEmail(email: string, password_plaintext: string): Promise<string> {
+  const hashedPassword = await Bun.password.hash(password_plaintext)
+  const userId = generateRandomId(15)
+
+  try {
+    db.run("INSERT INTO user (id, email, hashed_password) VALUES (?, ?, ?)", [
+      userId,
+      email,
+      hashedPassword
+    ])
+    return userId
+  } catch (e: any) {
+    if (e.message?.includes("UNIQUE constraint failed: user.email")) {
+      throw new Error("Email already registered")
+    }
+    console.error("Error creating user:", e)
+    throw new Error("Failed to create user")
+  }
+}
+
 export async function verifyPassword(hashedPassword: string, password_plaintext: string): Promise<boolean> {
   return await Bun.password.verify(password_plaintext, hashedPassword)
 }
@@ -86,7 +106,7 @@ export function createSession(userId: string, clientToken: string): { clientSess
  * @returns The session data (userId, expiresAt, renewed, newToken, user) if valid and found, otherwise null.
  */
 export function getSessionAndRenew(clientToken: string):
-  | { userId: string; expiresAt: Date; clientSessionToken: string; renewed?: boolean; newToken?: string; user: { id: string; username: string } }
+  | { userId: string; expiresAt: Date; clientSessionToken: string; renewed?: boolean; newToken?: string; user: { id: string; email: string } }
   | null {
   const sessionIdHashed = hashSessionToken(clientToken)
   const result = db.query("SELECT user_id, expires_at FROM session WHERE id = ?").get(sessionIdHashed) as { user_id: string; expires_at: number } | null
@@ -113,8 +133,6 @@ export function getSessionAndRenew(clientToken: string):
       sessionIdHashed
     ])
     console.log(`[AuthLib] Session renewed: ${sessionIdHashed}. New expiry: ${newExpiresAt.toISOString()}`)
-    // Optionally, rotate the session token here for extra security
-    // For now, just return renewed flag
     const user = getUserById(result.user_id)
     return { userId: result.user_id, expiresAt: newExpiresAt, clientSessionToken: clientToken, renewed: true, user }
   }
@@ -137,7 +155,12 @@ export function getUserByUsername(username: string): { id: string; hashed_passwo
   return user
 }
 
-export function getUserById(userId: string): { id: string; username: string } | null {
-  const user = db.query("SELECT id, username FROM user WHERE id = ?").get(userId) as { id: string; username: string } | null
+export function getUserByEmail(email: string): { id: string; email: string; hashed_password: string } | null {
+  const user = db.query("SELECT id, email, hashed_password FROM user WHERE email = ?").get(email) as { id: string; email: string; hashed_password: string } | null
+  return user
+}
+
+export function getUserById(userId: string): { id: string; email: string } | null {
+  const user = db.query("SELECT id, email FROM user WHERE id = ?").get(userId) as { id: string; email: string } | null
   return user
 }

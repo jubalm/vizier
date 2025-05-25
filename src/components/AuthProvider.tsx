@@ -2,15 +2,15 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 
 interface User {
   id: string
-  username: string
+  email: string
 }
 
 interface AuthContextType {
   user: User | null
   loading: boolean
   error: string | null
-  login: (username: string, password: string) => Promise<boolean>
-  register: (username: string, password: string) => Promise<boolean>
+  login: (email: string, password: string) => Promise<boolean>
+  register: (email: string, password: string) => Promise<boolean>
   logout: () => Promise<void>
   checkSession: () => Promise<void>
 }
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function login(username: string, password: string) {
+  async function login(email: string, password: string) {
     setLoading(true)
     setError(null)
     try {
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
       })
       if (res.status === 200) {
         await checkSession()
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function register(username: string, password: string) {
+  async function register(email: string, password: string) {
     setLoading(true)
     setError(null)
     try {
@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
       })
       if (res.status === 200) {
         await checkSession()

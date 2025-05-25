@@ -2,12 +2,12 @@ import { Hono } from "hono"
 import { z } from "zod"
 import { setCookie, getCookie, deleteCookie } from "hono/cookie"
 import {
-  createUser,
+  createUserWithEmail,
   verifyPassword,
   createSession,
   getSessionAndRenew, // Changed from getDbSession
   deleteSession,      // Changed from deleteDbSession
-  getUserByUsername,
+  getUserByEmail,
   getUserById,
   generateClientSessionToken, // Added import
 } from "../lib/auth"
@@ -17,12 +17,12 @@ const authApp = new Hono()
 
 // Zod schemas for validation
 const signupSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters long"),
+  email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters long"),
 })
 
 const loginSchema = z.object({
-  username: z.string(),
+  email: z.string().email("Invalid email address"),
   password: z.string(),
 })
 
@@ -36,14 +36,14 @@ authApp.post("/signup", async (c) => {
       return c.json({ error: "Invalid input", details: validationResult.error.flatten() }, 400)
     }
 
-    const { username, password } = validationResult.data
+    const { email, password } = validationResult.data
 
-    const existingUser = getUserByUsername(username)
+    const existingUser = getUserByEmail(email)
     if (existingUser) {
-      return c.json({ error: "Username already taken" }, 409)
+      return c.json({ error: "Email already registered" }, 409)
     }
 
-    const userId = await createUser(username, password)
+    const userId = await createUserWithEmail(email, password)
     const clientToken = generateClientSessionToken()
     const { clientSessionToken, expiresAt } = createSession(userId, clientToken)
 
@@ -72,16 +72,16 @@ authApp.post("/login", async (c) => {
       return c.json({ error: "Invalid input", details: validationResult.error.flatten() }, 400)
     }
 
-    const { username, password } = validationResult.data
-    const user = getUserByUsername(username)
+    const { email, password } = validationResult.data
+    const user = getUserByEmail(email)
 
     if (!user) {
-      return c.json({ error: "Invalid username or password" }, 401)
+      return c.json({ error: "Invalid email or password" }, 401)
     }
 
     const isValidPassword = await verifyPassword(user.hashed_password, password)
     if (!isValidPassword) {
-      return c.json({ error: "Invalid username or password" }, 401)
+      return c.json({ error: "Invalid email or password" }, 401)
     }
 
     const clientToken = generateClientSessionToken()
@@ -130,6 +130,7 @@ authApp.get("/session", async (c) => {
       return c.json({ user: null }, 401)
     }
 
+    // Session is valid and potentially renewed, session object contains { userId, expiresAt, clientSessionToken }
     const user = getUserById(session.userId)
     if (!user) {
       deleteCookie(c, "session_id", { path: "/" })
@@ -144,7 +145,7 @@ authApp.get("/session", async (c) => {
       expires: session.expiresAt,
     })
 
-    return c.json({ user: { id: user.id, username: user.username } })
+    return c.json({ user: { id: user.id, email: user.email } })
   } catch (error) {
     console.error("[Auth Session Error]", error)
     deleteCookie(c, "session_id", { path: "/" })
