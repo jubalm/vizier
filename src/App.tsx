@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react"
+import { useChat } from "ai/react"
 import {
   SidebarProvider,
   Sidebar,
@@ -11,32 +12,28 @@ import { ChatWindow } from "@/components/ChatWindow"
 import { ChatInput } from "@/components/ChatInput"
 import { UserMenu } from "@/components/UserMenu"
 
-// Mock chat data
+// Mock chat data for sidebar (we'll keep this for multiple chat sessions)
 const mockChats = [
   {
     id: 1,
     name: "General",
-    messages: [
-      { id: 1, sender: "user", content: "Hello!" },
-      { id: 2, sender: "assistant", content: "Hi! How can I help you today?" },
-    ],
   },
   {
     id: 2,
     name: "Ideas",
-    messages: [
-      { id: 1, sender: "user", content: "Brainstorm app ideas." },
-      { id: 2, sender: "assistant", content: "How about a chat UI?" },
-    ],
   },
 ]
 
 export function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [chats, setChats] = useState(mockChats)
+  const [chats] = useState(mockChats)
   const [activeChatId, setActiveChatId] = useState(chats[0].id)
-  const [input, setInput] = useState("")
   const chatWindowRef = useRef<HTMLDivElement>(null)
+
+  // Use the useChat hook for AI-powered chat
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+    api: '/api/chat',
+  })
 
   const activeChat = chats.find((c) => c.id === activeChatId)
 
@@ -45,28 +42,7 @@ export function App() {
     if (chatWindowRef.current) {
       chatWindowRef.current.scrollTop = chatWindowRef.current.scrollHeight
     }
-  }, [activeChat?.messages])
-
-  function handleSend(e: React.FormEvent) {
-    e.preventDefault()
-    if (!input.trim()) return
-    setChats((prev) =>
-      prev.map((chat) =>
-        chat.id === activeChatId
-          ? {
-            ...chat,
-            messages: [
-              ...chat.messages,
-              { id: Date.now(), sender: "user", content: input },
-              // Optionally, add a mock assistant reply
-              { id: Date.now() + 1, sender: "assistant", content: "(Assistant reply)" },
-            ],
-          }
-          : chat
-      )
-    )
-    setInput("")
-  }
+  }, [messages])
 
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -89,9 +65,9 @@ export function App() {
             <h2 className="text-lg font-semibold">{activeChat?.name}</h2>
           </div>
           {/* Chat Window */}
-          <ChatWindow messages={activeChat?.messages ?? []} chatWindowRef={chatWindowRef} />
+          <ChatWindow messages={messages} chatWindowRef={chatWindowRef} isLoading={isLoading} />
           {/* Chat Input */}
-          <ChatInput input={input} setInput={setInput} handleSend={handleSend} />
+          <ChatInput input={input} handleInputChange={handleInputChange} handleSubmit={handleSubmit} isLoading={isLoading} />
         </div>
       </div>
     </SidebarProvider >
