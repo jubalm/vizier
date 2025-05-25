@@ -2,20 +2,22 @@ import db from "./db"
 import { encodeBase32LowerCaseNoPadding } from "@oslojs/encoding"
 import { sha256 } from "@oslojs/crypto/sha2"
 import { Buffer } from "buffer"
-import { randomBytes } from "crypto"
+import { customAlphabet } from 'nanoid'
 
 const EXPIRES_IN_MS = 2 * 60 * 60 * 1000 // 2 hours in milliseconds
 const SESSION_RENEWAL_THRESHOLD_MS = 1 * 60 * 60 * 1000 // 1 hour in milliseconds
 
-function generateRandomId(length: number = 15): string {
-  return randomBytes(Math.ceil(length * 3 / 4))
-    .toString('base64url')
-    .slice(0, length)
+const ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+const nanoid = customAlphabet(ALPHABET, 12)
+const sessionNanoid = customAlphabet(ALPHABET, 32)
+
+function generateUserId() {
+  return nanoid()
 }
 
 export async function createUserWithEmail(email: string, password_plaintext: string): Promise<string> {
   const hashedPassword = await Bun.password.hash(password_plaintext)
-  const userId = generateRandomId(15)
+  const userId = generateUserId()
   try {
     db.run("INSERT INTO user (id, email, hashed_password) VALUES (?, ?, ?)", [
       userId,
@@ -37,9 +39,7 @@ export async function verifyPassword(hashedPassword: string, password_plaintext:
 }
 
 export function generateClientSessionToken(): string {
-  const bytes = new Uint8Array(32)
-  crypto.getRandomValues(bytes)
-  return encodeBase32LowerCaseNoPadding(bytes)
+  return sessionNanoid()
 }
 
 function hashSessionToken(sessionToken: string): string {
