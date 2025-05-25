@@ -1,9 +1,9 @@
-import { serve } from "bun"
-import index from "./index.html"
+import { serve } from "bun";
+import index from "./index.html";
 
 // Import route handlers
-import * as chatApi from './routes/chat'
-import * as helloApi from './routes/hello'
+import * as chatApi from './routes/chat';
+import * as healthApi from './routes/health'; // Added healthApi import
 
 const server = serve({
   routes: {
@@ -11,13 +11,7 @@ const server = serve({
     "/*": index,
 
     "/api/chat": chatApi, // Use the imported chatApi module
-
-    "/api/hello": {
-      GET: helloApi.GET, // Assign specific handlers
-      PUT: helloApi.PUT,
-    },
-
-    "/api/hello/:name": helloApi.fallback, // Assign fallback handler
+    "/api/health": healthApi, // Added healthApi route
   },
 
   development: process.env.NODE_ENV !== "production" && {
