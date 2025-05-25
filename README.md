@@ -32,6 +32,7 @@ A modern chat interface built with React, TypeScript, and Vercel AI SDK.
 - 🔄 **Real-time Streaming**: Supports streaming responses from AI models
 - 🌙 **Dark Mode**: Default dark theme for comfortable viewing
 - 📁 **Multiple Chats**: Sidebar with chat history and session management
+- 🛡️ **Error Handling**: Comprehensive error handling with user-friendly messages and retry functionality
 
 ## Setup
 
@@ -88,6 +89,28 @@ Visit [http://localhost:3000](http://localhost:3000) in your browser to see the 
 ```bash
 bun build
 ```
+
+## Error Handling
+
+The application includes comprehensive error handling to provide a smooth user experience:
+
+### Backend Error Handling
+- **Configuration Validation**: Validates API keys and configuration before processing requests
+- **Custom Error Messages**: Provides specific, user-friendly error messages for different scenarios
+- **Request Validation**: Ensures proper request format and message structure
+- **Stream Error Integration**: Integrates error handling with AI SDK streaming responses
+
+### Frontend Error Handling
+- **Visual Error Display**: Shows clear error messages in the chat interface
+- **Retry Functionality**: Users can easily retry failed requests with a single click
+- **Input State Management**: Disables input during error states to prevent confusion
+- **Non-blocking UI**: Chat interface remains responsive even during errors
+
+### Common Error Scenarios
+- **Missing API Key**: Clear message about configuration requirements
+- **Rate Limiting**: Helpful guidance when API limits are exceeded
+- **Network Issues**: Retry options for temporary connectivity problems
+- **Invalid Requests**: Specific feedback about request format issues
 
 ### 2. Start Production Server
 
