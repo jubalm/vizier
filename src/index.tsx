@@ -1,9 +1,9 @@
-import { serve } from "bun";
-import index from "./index.html";
+import { serve } from "bun"
+import index from "./index.html"
 
 // Import route handlers
-import * as chatApi from './routes/chat';
-import * as healthApi from './routes/health'; // Added healthApi import
+import * as chatApi from './routes/chat'
+import * as healthApi from './routes/health' // Added healthApi import
 
 const server = serve({
   routes: {

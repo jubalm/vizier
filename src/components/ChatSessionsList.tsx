@@ -1,4 +1,3 @@
-import React from "react"
 import {
   SidebarContent,
   SidebarGroup,
@@ -10,9 +9,13 @@ import {
 } from "@/components/ui/sidebar"
 import { MessageCircle } from "lucide-react"
 
-export function ChatList({ chats, activeChatId, setActiveChatId }: {
-  chats: Array<{ id: number, name: string }>,
-  activeChatId: number,
+export function ChatSessionsList({
+  chats,
+  activeChatId,
+  setActiveChatId,
+}: {
+  chats: Array<{ id: number; name: string }>
+  activeChatId: number
   setActiveChatId: (id: number) => void
 }) {
   return (

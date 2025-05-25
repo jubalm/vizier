@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Menu } from "lucide-react"
 import "./index.css"
-import { ChatList } from "@/components/ChatList"
+import { ChatSessionsList } from "@/components/ChatSessionsList" // Updated import
 import { ChatWindow } from "@/components/ChatWindow"
 import { ChatInput } from "@/components/ChatInput"
 import { UserMenu } from "@/components/UserMenu"
@@ -59,7 +59,7 @@ export function App() {
     <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
       <div className="flex h-screen w-screen bg-background">
         <Sidebar className="border-r">
-          <ChatList
+          <ChatSessionsList // Updated component name
             chats={chats.map(({ id, name }) => ({ id, name }))}
             activeChatId={activeChatId}
             setActiveChatId={setActiveChatId}
