@@ -12,6 +12,72 @@ A modern chat interface built with React, TypeScript, and Vercel AI SDK.
 - 📁 **Multiple Chats**: Sidebar with chat history and session management
 - 🛡️ **Error Handling**: Comprehensive error handling with user-friendly messages and retry functionality
 
+## Project Structure & Organization
+
+This project is organized by service/domain for maintainability and scalability.
+
+### Directory Structure
+
+```
+src/
+  services/
+    auth/
+      db.ts              # Auth/session/user DB (auth.sqlite)
+      model.ts           # User/session types/interfaces
+      logic.ts           # createUser, verifyPassword, etc.
+      routes.ts          # Hono routes for /api/auth/*
+      middleware.ts      # sessionAuth, etc.
+      tests/
+        integration.test.ts
+    chat/
+      db.ts              # Chat/memory DB (memory.sqlite)
+      model.ts           # Chat session/message types
+      logic.ts           # Chat session/message logic
+      routes.ts          # Hono routes for /api/chat/*
+      tests/
+        integration.test.ts
+  components/
+    AuthProvider.tsx
+    UserMenu.tsx
+    ChatWindow.tsx
+    ...etc
+  pages/
+    LoginPage.tsx
+    RegisterPage.tsx
+    ChatPage.tsx
+  hooks/
+    use-mobile.ts
+  utils/
+    errors.ts
+    ...etc
+  config.ts
+  index.tsx
+```
+
+- **Auth Service:** Handles user registration, login, session management, and authentication middleware.
+- **Chat Service:** Handles chat session/message storage, chat logic, and chat API routes.
+- **Shared Utilities:** Common helpers and error handling in `src/utils/`.
+- **UI Components:** All React components in `src/components/`.
+
+### Database Organization
+
+- `auth.sqlite` (used by `services/auth/db.ts`): user, session tables.
+- `memory.sqlite` (to be created, used by `services/chat/db.ts`): chat_session, chat_message tables.
+
+### Development & Migration Notes
+
+- All service logic and API routes are colocated by domain for easier scaling and maintenance.
+- To reset the local auth database, delete `src/services/auth/auth.sqlite` and restart the server.
+- Local SQLite files are ignored by git and safe to delete/recreate.
+
+### Next Steps
+
+- Implement chat history/memory features in `services/chat/`.
+- Add more integration tests and improve error handling.
+- See `REORGANIZATION_PLAN.md` for migration details and checklist.
+
+---
+
 ## Setup
 
 ### 1. Install Dependencies
