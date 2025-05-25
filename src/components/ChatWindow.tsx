@@ -1,6 +1,7 @@
 import { type RefObject } from "react"
 import { User, Bot, AlertCircle, RefreshCw } from "lucide-react"
 import type { Message } from "ai"
+import { ChatMessageContent } from "./ChatMessageContent" // Import the new component
 
 export function ChatWindow({
   messages,
@@ -26,14 +27,16 @@ export function ChatWindow({
           className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
         >
           <div
-            className={`max-w-xs px-4 py-2 rounded-lg shadow text-sm whitespace-pre-line ${message.role === "user"
+            className={`max-w-2xl px-4 py-2 rounded-lg shadow-sm text-sm ${message.role === "user"
               ? "bg-primary text-primary-foreground"
-              : "bg-muted text-foreground"
+              : "text-foreground"
               }`}
           >
-            <span className="inline-flex items-center gap-1">
-              {message.role === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-              {message.content}
+            <span className="inline-flex items-start gap-1"> {/* Changed to items-start for better alignment with multiline content */}
+              {message.role === "user" ? <User className="w-4 h-4 flex-shrink-0 mt-0.5" /> : <Bot className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+              <div className="whitespace-pre-line"> {/* Added a div wrapper for content to ensure pre-line applies correctly to markdown output */}
+                <ChatMessageContent message={message} /> {/* Use the new component here */}
+              </div>
             </span>
           </div>
         </div>
