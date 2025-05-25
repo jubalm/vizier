@@ -1,8 +1,12 @@
-import { type BunRequest } from 'bun'
+import { Hono } from 'hono';
 
-export async function GET(req: BunRequest): Promise<Response> {
-  return Response.json({
+const healthApp = new Hono();
+
+healthApp.get('/', (c) => {
+  return c.json({
     status: "ok",
     timestamp: new Date().toISOString(),
-  })
-}
+  });
+});
+
+export default healthApp;

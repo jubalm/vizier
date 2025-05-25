@@ -1,26 +1,39 @@
-import { serve } from "bun"
-import index from "./index.html"
+import { Hono } from 'hono'
+import { cors } from 'hono/cors'
+import { serveStatic } from 'hono/bun' // Changed from @hono/node-server to hono/bun
+import { validateConfig, config } from "./config"
+import "./lib/db" // Initialize database
 
-// Import route handlers
-import * as chatApi from './routes/chat'
-import * as healthApi from './routes/health' // Added healthApi import
+import healthRoutes from "./routes/health" // Assuming this is Hono compatible or will be adapted
+import chatRoutes from "./routes/chat"   // Assuming this is Hono compatible or will be adapted
+import authApp from "./routes/auth"
 
-const server = serve({
-  routes: {
-    // Serve index.html for all unmatched routes.
-    "/*": index,
+// Validate environment configuration
+validateConfig()
 
-    "/api/chat": chatApi, // Use the imported chatApi module
-    "/api/health": healthApi, // Added healthApi route
-  },
+const app = new Hono()
 
-  development: process.env.NODE_ENV !== "production" && {
-    // Enable browser hot reloading in development
-    hmr: true,
+// CORS middleware
+app.use('*_SERVER_CONFIG_PLACEHOLDER_*', cors()) // Placeholder for path, will refine if needed
 
-    // Echo console logs from the browser to the server
-    console: true,
-  },
+// API routes
+app.route('/api/health', healthRoutes) // If healthRoutes is a Hono app
+app.route('/api/chat', chatRoutes)     // If chatRoutes is a Hono app
+app.route('/api/auth', authApp)
+
+// Static assets serving - adjust path as necessary
+app.use('/*', serveStatic({ root: './dist' })) // Serving from ./dist
+app.get('/*', serveStatic({ path: './dist/index.html' })) // SPA fallback
+
+console.log(`Server starting on port ${config.PORT}...`)
+
+Bun.serve({
+  fetch: app.fetch,
+  port: config.PORT,
 })
 
-console.log(`🚀 Server running at ${server.url}`)
+console.log(
+  `🦊 Hono server is running at http://localhost:${config.PORT}`
+)
+
+export default app // Exporting the Hono app instance

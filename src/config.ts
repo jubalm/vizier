@@ -22,14 +22,16 @@ const envSchema = z.object({
 })
 
 // Validate environment variables with Zod
+let validatedConfig: z.infer<typeof envSchema>
+
 export function validateConfig() {
   try {
-    const config = envSchema.parse({
+    validatedConfig = envSchema.parse({
       OPENAI_API_KEY: process.env.OPENAI_API_KEY,
       OPENAI_BASE_URL: process.env.OPENAI_BASE_URL,
     })
-
-    return config
+    console.log("[Config] Environment configuration validated successfully.")
+    return validatedConfig
   } catch (error) {
     if (error instanceof z.ZodError) {
       const errorMessages = error.errors.map(err =>
@@ -41,18 +43,35 @@ export function validateConfig() {
   }
 }
 
+// Export the validated config for direct use after validation
+export const config = new Proxy({} as z.infer<typeof envSchema>, {
+  get: (target, prop) => {
+    if (!validatedConfig) {
+      // Attempt to validate if not already done, or throw if called too early
+      try {
+        validateConfig()
+      } catch (e) {
+        console.error("[Config] Accessing config before validation or validation failed:", e)
+        throw new Error("Configuration accessed before validation or validation failed.")
+      }
+    }
+    return validatedConfig[prop as keyof typeof validatedConfig]
+  }
+})
+
 // Configure OpenAI provider with custom baseURL support
 export function createOpenAIProvider() {
   console.log('[createOpenAIProvider] Attempting to configure OpenAI provider...')
-  const config = validateConfig() // validateConfig already throws detailed errors if validation fails
+  // Access config directly; it will internally trigger validation if not done
+  const currentConfig = config
 
   // Log the validated configuration (being mindful of sensitive data)
-  console.log(`[createOpenAIProvider] Validated configuration - Base URL: ${config.OPENAI_BASE_URL}, API Key is set (length: ${config.OPENAI_API_KEY ? config.OPENAI_API_KEY.length : 'NOT SET'})`)
+  console.log(`[createOpenAIProvider] Validated configuration - Base URL: ${currentConfig.OPENAI_BASE_URL}, API Key is set (length: ${currentConfig.OPENAI_API_KEY ? currentConfig.OPENAI_API_KEY.length : 'NOT SET'})`)
 
   try {
     const provider = createOpenAI({
-      apiKey: config.OPENAI_API_KEY,
-      baseURL: config.OPENAI_BASE_URL,
+      apiKey: currentConfig.OPENAI_API_KEY,
+      baseURL: currentConfig.OPENAI_BASE_URL,
     })
     console.log('[createOpenAIProvider] OpenAI provider instance created successfully.')
     return provider
