@@ -83,9 +83,11 @@ export function createSession(userId: string, clientToken: string): { clientSess
 /**
  * Retrieves and potentially renews a session based on the client session token.
  * @param clientToken The client-facing session token.
- * @returns The session data (userId, expiresAt) if valid and found, otherwise null.
+ * @returns The session data (userId, expiresAt, renewed, newToken, user) if valid and found, otherwise null.
  */
-export function getSessionAndRenew(clientToken: string): { userId: string; expiresAt: Date; clientSessionToken: string } | null {
+export function getSessionAndRenew(clientToken: string):
+  | { userId: string; expiresAt: Date; clientSessionToken: string; renewed?: boolean; newToken?: string; user: { id: string; username: string } }
+  | null {
   const sessionIdHashed = hashSessionToken(clientToken)
   const result = db.query("SELECT user_id, expires_at FROM session WHERE id = ?").get(sessionIdHashed) as { user_id: string; expires_at: number } | null
 
@@ -104,19 +106,20 @@ export function getSessionAndRenew(clientToken: string): { userId: string; expir
   }
 
   // Check if session needs renewal
-  const renewalTimeLimit = Date.now() - (EXPIRES_IN_MS - SESSION_RENEWAL_THRESHOLD_MS) // if current time is past this, it means less than threshold is left.
-  // More directly: if (currentExpiresAt.getTime() < Date.now() + SESSION_RENEWAL_THRESHOLD_MS)
-  if (currentExpiresAt.getTime() < Date.now() + SESSION_RENEWAL_THRESHOLD_MS) { // Simpler check: if expiry is within the renewal threshold from now
-    const newExpiresAt = new Date(Date.now() + EXPIRES_IN_MS) // Renew for the full duration from now
+  if (currentExpiresAt.getTime() < Date.now() + SESSION_RENEWAL_THRESHOLD_MS) {
+    const newExpiresAt = new Date(Date.now() + EXPIRES_IN_MS)
     db.run("UPDATE session SET expires_at = ? WHERE id = ?", [
       newExpiresAt.getTime(),
       sessionIdHashed
     ])
     console.log(`[AuthLib] Session renewed: ${sessionIdHashed}. New expiry: ${newExpiresAt.toISOString()}`)
-    return { userId: result.user_id, expiresAt: newExpiresAt, clientSessionToken: clientToken }
+    // Optionally, rotate the session token here for extra security
+    // For now, just return renewed flag
+    const user = getUserById(result.user_id)
+    return { userId: result.user_id, expiresAt: newExpiresAt, clientSessionToken: clientToken, renewed: true, user }
   }
-  // console.log(`[AuthLib] Session validated (no renewal needed): ${sessionIdHashed}`);
-  return { userId: result.user_id, expiresAt: currentExpiresAt, clientSessionToken: clientToken }
+  const user = getUserById(result.user_id)
+  return { userId: result.user_id, expiresAt: currentExpiresAt, clientSessionToken: clientToken, user }
 }
 
 /**

@@ -15,16 +15,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { User, Settings, LogOut, ChevronsUpDown } from "lucide-react"
+import { useAuth } from "./AuthProvider"
 
-interface UserMenuProps {
-  user?: {
-    name: string
-    email: string
-    avatar?: string
-  }
-}
-
-export function UserMenu({ user = { name: "John Doe", email: "john@example.com" } }: UserMenuProps) {
+export function UserMenu() {
+  const { user, logout, loading } = useAuth()
   return (
     <SidebarFooter>
       <SidebarMenu>
@@ -39,8 +33,8 @@ export function UserMenu({ user = { name: "John Doe", email: "john@example.com" 
                   <User className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span className="truncate font-semibold">{user?.username || "Guest"}</span>
+                  <span className="truncate text-xs">{user ? `ID: ${user.id}` : "Not logged in"}</span>
                 </div>
                 <ChevronsUpDown className="ml-auto size-4" />
               </SidebarMenuButton>
@@ -57,8 +51,8 @@ export function UserMenu({ user = { name: "John Doe", email: "john@example.com" 
                     <User className="size-4" />
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{user.name}</span>
-                    <span className="truncate text-xs">{user.email}</span>
+                    <span className="truncate font-semibold">{user?.username || "Guest"}</span>
+                    <span className="truncate text-xs">{user ? `ID: ${user.id}` : "Not logged in"}</span>
                   </div>
                 </div>
               </DropdownMenuLabel>
@@ -74,7 +68,7 @@ export function UserMenu({ user = { name: "John Doe", email: "john@example.com" 
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => logout()} disabled={loading}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>

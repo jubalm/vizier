@@ -1,8 +1,12 @@
 import { Hono } from 'hono'
 import { streamText } from 'ai'
 import { createOpenAIProvider } from '../config'
+import { sessionAuth } from '../middleware/sessionAuth'
 
 const chatRoutes = new Hono()
+
+// Apply sessionAuth middleware to all chat routes
+chatRoutes.use('*', sessionAuth)
 
 chatRoutes.post('/', async (c) => {
   try {
