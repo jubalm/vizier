@@ -3,11 +3,13 @@
 ## Core Features
 
 - **Chat Interface**
+
   - Real-time chat window for user and assistant messages.
   - Message input box with send button.
   - Auto-scroll to latest message.
 
 - **Sidebar (Chat History)**
+
   - Toggle-able sidebar to show/hide chat history.
   - List of previous chat sessions.
   - Select a chat session to view its messages.

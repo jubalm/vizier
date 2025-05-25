@@ -1,4 +1,4 @@
-@import "../styles/globals.css";
+@import '../styles/globals.css';
 
 @layer base {
   :root {
@@ -10,8 +10,8 @@
   }
 }
 
-/* cool Bun background animation 😎 */
-body::before {
+/* Remove Bun background animation */
+/* body::before {
   content: "";
   position: fixed;
   inset: 0;
@@ -22,7 +22,7 @@ body::before {
   transform: rotate(-12deg) scale(1.35);
   animation: slide 30s linear infinite;
   pointer-events: none;
-}
+} */
 
 @keyframes slide {
   from {
